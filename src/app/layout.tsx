@@ -3,9 +3,8 @@ import type { Metadata } from 'next';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: { default: 'CMS Platform', template: '%s | CMS Platform' },
-  description: 'Professional CMS Platform with admin panel and public blog',
-  robots: { index: true, follow: true },
+  title: { default: 'پنل مدیریت CMS', template: '%s | CMS Platform' },
+  description: 'پنل مدیریت محتوای CMS',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

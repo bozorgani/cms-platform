@@ -19,12 +19,15 @@ html, body {
 .ProseMirror h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
 .ProseMirror h2 { font-size: 1.5em; font-weight: bold; margin: 0.75em 0; }
 .ProseMirror h3 { font-size: 1.17em; font-weight: bold; margin: 0.83em 0; }
+.ProseMirror ul, .ProseMirror ol { padding-right: 2em; margin: 1em 0; }
+.ProseMirror li { margin: 0.5em 0; }
 .ProseMirror img { max-width: 100%; height: auto; margin: 1em 0; border-radius: 4px; }
 .ProseMirror img.ProseMirror-selectednode { outline: 3px solid #3b82f6; }
 .ProseMirror code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
 .ProseMirror blockquote { border-right: 4px solid #ddd; padding-right: 1em; margin: 1em 0; font-style: italic; }
+.ProseMirror hr { border: none; border-top: 2px solid #ddd; margin: 2em 0; }
 
-/* Preview Blog */
+/* Blog preview */
 .prose { color: #374151; max-width: 65ch; }
 .prose h1 { font-size: 2.25em; margin-top: 0; margin-bottom: 0.89em; line-height: 1.11; }
 .prose h2 { font-size: 1.5em; margin-top: 2em; margin-bottom: 1em; line-height: 1.33; }
@@ -32,7 +35,6 @@ html, body {
 .prose p { margin-top: 1.25em; margin-bottom: 1.25em; line-height: 1.75; }
 .prose a { color: #2563eb; text-decoration: underline; font-weight: 500; }
 .prose ul, .prose ol { margin-top: 1.25em; margin-bottom: 1.25em; padding-right: 1.625em; }
-.prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
 .prose blockquote {
   font-weight: 500;
   font-style: italic;

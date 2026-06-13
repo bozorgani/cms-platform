@@ -116,3 +116,17 @@ export { checkRateLimit, resetRateLimit, type RateLimitResult, type RateLimitOpt
 
 // Notifications (re-exported)
 export { notify } from './notify';
+
+// Safe storage helpers (for migration)
+export const safeGetStorage = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+  try { return localStorage.getItem(key); } catch { return null; }
+};
+
+export const safeSetStorage = (key: string, value: string): void => {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
+};
+
+// Extract text from TipTap content (alias)
+export const extractTextFromContent = extractTextFromTiptap;

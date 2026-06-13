@@ -227,3 +227,7 @@ export interface ToastMessage {
   message: string;
   duration?: number;
 }
+
+// Re-export PostStatus from constants for convenience
+export type { PostStatus } from '@/lib/constants';
+export type { UserRole } from '@/lib/constants';

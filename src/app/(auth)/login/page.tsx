@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Lock, KeyRound, AlertTriangle, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
-import { login, getCurrentUser } from '@/lib/api/client';
+import { login, getCurrentUser, fetchCurrentUser } from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<'credentials' | 'totp'>('credentials');
 
   useEffect(() => {
-    getCurrentUser().then((user) => {
+    fetchCurrentUser().then((user) => {
       if (user) router.replace('/');
     });
   }, [router]);

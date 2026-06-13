@@ -122,3 +122,18 @@ export const IMAGEKIT = {
 export const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i;
 export const VIDEO_EXTENSIONS = /\.(mp4|mov|webm|avi)$/i;
 export const DOC_EXTENSIONS = /\.(pdf|doc|docx)$/i;
+
+// =============================================
+// Extended constants (for migration)
+// =============================================
+export const TWITTER_CARDS = [
+  { value: 'summary', label: 'summary' },
+  { value: 'summary_large_image', label: 'summary_large_image' },
+] as const;
+
+export const STORAGE_KEYS = {
+  TOKEN: 'cms-auth-token',
+  USER: 'cms-user-info',
+  TOTP: 'cms-totp-secret',
+  SETTINGS: 'cms-settings',
+} as const;

@@ -1,7 +1,7 @@
 'use client';
 
 import { API_PREFIX } from '@/lib/constants';
-import type { User } from '@/types';
+import type { User, Post, Category, Tag, Media } from '@/types';
 
 function buildUrl(path: string, query?: URLSearchParams): string {
   let url = `${API_PREFIX}${path}`;
@@ -46,15 +46,13 @@ async function fetchApi(path: string, options: RequestInit = {}): Promise<Respon
   });
 }
 
-export async function getCurrentUser(): Promise<User | null> {
-  try {
-    const res = await fetchApi('/auth/me');
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.user || null;
-  } catch {
-    return null;
-  }
+// ============================================
+// Auth
+// ============================================
+
+
+export async function fetchCurrentUser(): Promise<User | null> {
+  return getCurrentUser();
 }
 
 export async function login(email: string, password: string, totpCode?: string) {
@@ -106,7 +104,18 @@ export async function resetPassword(token: string, newPassword: string) {
   }
 }
 
-export async function listPosts(params?: { status?: string; page?: number; limit?: number; search?: string }) {
+// ============================================
+// Posts
+// ============================================
+
+interface ListPostsParams {
+  status?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export async function listPosts(params?: ListPostsParams): Promise<{ ok: boolean; items?: Post[]; total?: number; page?: number; error?: string }> {
   const query = new URLSearchParams();
   if (params?.status) query.append('status', params.status);
   if (params?.page) query.append('page', String(params.page));
@@ -115,141 +124,325 @@ export async function listPosts(params?: { status?: string; page?: number; limit
 
   try {
     const res = await fetchApi('/posts?' + query.toString());
-    return await handle<{ ok: boolean; items?: any[]; total?: number; page?: number; error?: string }>(res);
+    return await handle<{ ok: boolean; items?: Post[]; total?: number; page?: number }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false };
   }
 }
 
-export async function createPost(data: any) {
+export async function getPost(id: string): Promise<{ ok: boolean; post?: Post; error?: string }> {
+  try {
+    const res = await fetchApi(`/posts/${id}`);
+    return await handle<{ ok: boolean; post?: Post }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function createPost(data: Partial<Post>): Promise<{ ok: boolean; post?: Post; error?: string }> {
   try {
     const res = await fetchApi('/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return await handle<{ ok: boolean; post?: any; error?: string }>(res);
+    return await handle<{ ok: boolean; post?: Post }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function updatePost(id: string, data: any) {
+export async function updatePost(id: string, data: Partial<Post>): Promise<{ ok: boolean; post?: Post; error?: string }> {
   try {
     const res = await fetchApi(`/posts/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return await handle<{ ok: boolean; post?: any; error?: string }>(res);
+    return await handle<{ ok: boolean; post?: Post }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function deletePost(id: string) {
+export async function deletePost(id: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetchApi(`/posts/${id}`, { method: 'DELETE' });
-    return await handle<{ ok: boolean; error?: string }>(res);
+    return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function listCategories() {
+// ============================================
+// Categories
+// ============================================
+
+export async function listCategories(params?: { page?: number; limit?: number }): Promise<{ ok: boolean; items?: Category[]; total?: number; page?: number; error?: string }> {
   try {
-    const res = await fetchApi('/categories');
-    return await handle<{ ok: boolean; items?: any[]; error?: string }>(res);
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.limit) query.append('limit', String(params.limit));
+    const res = await fetchApi('/categories?' + query.toString());
+    return await handle<{ ok: boolean; items?: Category[]; total?: number; page?: number }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false };
   }
 }
 
-export async function createCategory(data: any) {
+export async function getCategory(id: string): Promise<{ ok: boolean; category?: Category; error?: string }> {
+  try {
+    const res = await fetchApi(`/categories/${id}`);
+    return await handle<{ ok: boolean; category?: Category }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function createCategory(data: Partial<Category>): Promise<{ ok: boolean; category?: Category; error?: string }> {
   try {
     const res = await fetchApi('/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return await handle<{ ok: boolean; category?: any; error?: string }>(res);
+    return await handle<{ ok: boolean; category?: Category }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function listTags() {
+export async function updateCategory(id: string, data: Partial<Category>): Promise<{ ok: boolean; category?: Category; error?: string }> {
   try {
-    const res = await fetchApi('/tags');
-    return await handle<{ ok: boolean; items?: any[]; error?: string }>(res);
+    const res = await fetchApi(`/categories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await handle<{ ok: boolean; category?: Category }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
+    return await handle<{ ok: boolean }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+// ============================================
+// Tags
+// ============================================
+
+export async function listTags(params?: { page?: number; limit?: number }): Promise<{ ok: boolean; items?: Tag[]; total?: number; page?: number; error?: string }> {
+  try {
+    const query2 = new URLSearchParams();
+    if (params?.page) query2.append('page', String(params.page));
+    if (params?.limit) query2.append('limit', String(params.limit));
+    const res = await fetchApi('/tags?' + query2.toString());
+    return await handle<{ ok: boolean; items?: Tag[]; total?: number; page?: number }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false };
   }
 }
 
-export async function createTag(data: any) {
+export async function getTag(id: string): Promise<{ ok: boolean; tag?: Tag; error?: string }> {
+  try {
+    const res = await fetchApi(`/tags/${id}`);
+    return await handle<{ ok: boolean; tag?: Tag }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function createTag(data: Partial<Tag>): Promise<{ ok: boolean; tag?: Tag; error?: string }> {
   try {
     const res = await fetchApi('/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return await handle<{ ok: boolean; tag?: any; error?: string }>(res);
+    return await handle<{ ok: boolean; tag?: Tag }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function listMedia(params?: { page?: number; limit?: number }) {
+export async function updateTag(id: string, data: Partial<Tag>): Promise<{ ok: boolean; tag?: Tag; error?: string }> {
+  try {
+    const res = await fetchApi(`/tags/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await handle<{ ok: boolean; tag?: Tag }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function deleteTag(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetchApi(`/tags/${id}`, { method: 'DELETE' });
+    return await handle<{ ok: boolean }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+// ============================================
+// Media
+// ============================================
+
+export async function listMedia(params?: { page?: number; limit?: number }): Promise<{ ok: boolean; items?: Media[]; total?: number; page?: number; error?: string }> {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', String(params.page));
   if (params?.limit) query.append('limit', String(params.limit));
 
   try {
     const res = await fetchApi('/media?' + query.toString());
-    return await handle<{ ok: boolean; items?: any[]; total?: number; page?: number; error?: string }>(res);
+    return await handle<{ ok: boolean; items?: Media[]; total?: number; page?: number }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false };
   }
 }
 
-export async function uploadMedia(file: File, alt?: string, caption?: string) {
+export async function getMedia(id: string): Promise<{ ok: boolean; media?: Media; error?: string }> {
+  try {
+    const res = await fetchApi(`/media/${id}`);
+    return await handle<{ ok: boolean; media?: Media }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function uploadMedia(file: File, alt?: string, caption?: string): Promise<{ ok: boolean; media?: Media; error?: string }> {
   try {
     const formData = new FormData();
     formData.append('file', file);
     if (alt) formData.append('alt', alt);
     if (caption) formData.append('caption', caption);
 
-    const res = await fetchApi('/media', { method: 'POST', body: formData });
-    return await handle<{ ok: boolean; media?: any; error?: string }>(res);
+    const res = await fetchApi('/media', {
+      method: 'POST',
+      body: formData,
+    });
+    return await handle<{ ok: boolean; media?: Media }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
 
-export async function deleteMedia(id: string) {
+export async function deleteMedia(id: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetchApi(`/media/${id}`, { method: 'DELETE' });
-    return await handle<{ ok: boolean; error?: string }>(res);
+    return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false, error: 'Network error' };
   }
 }
+
+// ============================================
+// Users (admin only)
+// ============================================
+
+export async function listUsers(): Promise<{ ok: boolean; items?: User[]; error?: string }> {
+  try {
+    const res = await fetchApi('/users');
+    return await handle<{ ok: boolean; items?: User[] }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false };
+  }
+}
+
+// ============================================
+// Media URL helper
+// ============================================
 
 export function getMediaUrl(path: string | undefined | null): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
+  if (path.startsWith('data:')) return path;
   if (path.startsWith('/')) return path;
   return `/${path}`;
 }
+
+// ============================================
+// Media Update/Replace (extended)
+// ============================================
+
+export async function updateMedia(id: string, updates: { alt?: string; caption?: string }): Promise<{ ok: boolean; media?: Media; error?: string }> {
+  try {
+    const res = await fetchApi(`/media/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await handle<{ ok: boolean; media?: Media }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function replaceMedia(id: string, file: File, alt?: string, caption?: string): Promise<{ ok: boolean; media?: Media; error?: string }> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (alt) formData.append('alt', alt);
+    if (caption) formData.append('caption', caption);
+
+    const res = await fetchApi(`/media/${id}/replace`, {
+      method: 'PUT',
+      body: formData,
+    });
+    return await handle<{ ok: boolean; media?: Media }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+// Sync version that reads from cookie (for SSR compatibility)
+export function getCurrentUserSync(): User | null {
+  if (typeof document === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, ...rest] = cookie.trim().split('=');
+    if (name === 'cms-user-info') {
+      try {
+        return JSON.parse(decodeURIComponent(rest.join('=')));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+// Alias for compatibility
+export const getCurrentUser = getCurrentUserSync;

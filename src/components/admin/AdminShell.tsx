@@ -15,7 +15,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { logout, getCurrentUser } from '@/lib/api/client';
+import { logout, getCurrentUser, fetchCurrentUser } from '@/lib/api/client';
 import type { User } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -41,7 +41,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    getCurrentUser().then(setUser);
+    fetchCurrentUser().then(setUser);
   }, []);
 
   const isActive = (href: string) =>
