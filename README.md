@@ -121,23 +121,43 @@ npm run reset-password   # Reset password via CLI
 - bcrypt password hashing (cost 10)
 
 ## Environment Variables
+## License
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| MONGODB_URI | Yes | MongoDB connection string |
-| JWT_SECRET | Yes | 64-char hex string for JWT signing |
-| CMS_ENCRYPTION_KEY | Yes | 64-char hex string for encryption |
-| NEXT_PUBLIC_APP_URL | No | Public URL (default: localhost) |
-| ALLOWED_IPS | No | Comma-separated IP allowlist |
-| TRUST_PROXY | No | Trust X-Forwarded-For (true/false) |
-| TELEGRAM_BOT_TOKEN | No | Telegram bot for notifications |
-| TELEGRAM_CHAT_ID | No | Telegram chat ID |
-| IMAGEKIT_* | No | ImageKit for media hosting |
+MIT
 
-Generate random secrets:
-\`\`\`bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-\`\`\`
+## Environment Variables
+
+### Required (الزامی)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/cms-platform` |
+| `JWT_SECRET` | 64-char hex for JWT signing | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `CMS_ENCRYPTION_KEY` | 64-char hex for encryption | Same as above (generate new) |
+
+### Optional (اختیاری)
+
+| Variable | Description | When needed |
+|----------|-------------|-------------|
+| `NEXT_PUBLIC_APP_URL` | Public URL of your site | Production (for reset links, OG tags) |
+| `ALLOWED_IPS` | Comma-separated IP allowlist | When you want to restrict access |
+| `TRUST_PROXY` | Trust X-Forwarded-For | `true` for Vercel/proxies |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot for notifications | If you want security alerts |
+| `TELEGRAM_CHAT_ID` | Your Telegram chat ID | With TELEGRAM_BOT_TOKEN |
+
+### Media Storage (اختیاری - NOT in current code)
+
+| Service | Variables | Notes |
+|---------|-----------|-------|
+| ImageKit | `IMAGEKIT_*` | ⚠️ Not implemented yet - placeholder only |
+| Vercel Blob | `BLOB_READ_WRITE_TOKEN` | ✅ Best for Vercel |
+| Cloudinary | `CLOUDINARY_*` | ✅ Best for images |
+| AWS S3 | `AWS_*` + `S3_BUCKET` | ✅ Scalable |
+
+**Current implementation**: Media is stored as base64 data URLs in MongoDB.
+- ✅ Works for MVP/development
+- ❌ Not scalable (16MB MongoDB doc limit)
+- 💡 Recommended: Use Vercel Blob or Cloudinary for production
 
 ## License
 
