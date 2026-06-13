@@ -446,3 +446,45 @@ export function getCurrentUserSync(): User | null {
 
 // Alias for compatibility
 export const getCurrentUser = getCurrentUserSync;
+
+// ============================================
+// Users (extended for admin UI)
+// ============================================
+
+export async function deleteUser(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetchApi(`/users/${id}`, { method: 'DELETE' });
+    return await handle<{ ok: boolean }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function updateUser(id: string, data: { name?: string; role?: string; password?: string }): Promise<{ ok: boolean; user?: User; error?: string }> {
+  try {
+    const res = await fetchApi(`/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await handle<{ ok: boolean; user?: User }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export async function createUser(data: { email: string; password: string; name?: string; role?: string }): Promise<{ ok: boolean; user?: User; error?: string }> {
+  try {
+    const res = await fetchApi('/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await handle<{ ok: boolean; user?: User }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}

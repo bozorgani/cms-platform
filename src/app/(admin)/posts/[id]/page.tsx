@@ -11,8 +11,8 @@ import {
   createCategory,
   createTag,
 } from '@/lib/api';
-import { RichTextEditor } from '@/components/RichTextEditor';
-import { MediaSelector } from '@/components/MediaSelector';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { MediaSelector } from '@/components/admin/MediaSelector';
 import { useToast } from '@/hooks/useToast';
 import { ROBOTS_OPTIONS, SCHEMA_TYPES, TWITTER_CARDS, SEO_LIMITS } from '@/lib/constants';
 import { extractTextFromContent, generateSlug } from '@/lib/utils';
