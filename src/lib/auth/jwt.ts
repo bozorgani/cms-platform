@@ -20,6 +20,13 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 export function getTokenFromRequest(request: Request): string | null {
+  // اولویت ۱: Authorization: Bearer header (استاندارد API)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+
+  // اولویت ۲: Cookie (برای استفاده در browser)
   const cookieHeader = request.headers.get('cookie') || '';
   const match = cookieHeader.match(/cms-auth-token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
