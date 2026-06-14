@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
 import { Media } from '@/lib/db/models';
 import { requireAuth } from '@/lib/auth';
+import { uploadMediaFileToBlob, validateMediaFile } from '@/lib/media/storage';
 
 export async function GET(request: NextRequest) {
   try { await connectToDatabase(); } catch {
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = Math.min(100, parseInt(searchParams.get('limit') || '20'));
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
 
   const items = await Media.find()
     .sort({ createdAt: -1 })
@@ -31,28 +32,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
-  // For Next.js API routes, FormData is supported natively
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ ok: false, error: t('error.invalidRequest') }, { status: 400 });
+  }
+
   const file = formData.get('file') as File | null;
   if (!file) {
     return NextResponse.json({ ok: false, error: t('media.noFile') }, { status: 400 });
   }
 
-  const alt = (formData.get('alt') as string) || '';
+  const validationError = validateMediaFile(file);
+  if (validationError) {
+    return NextResponse.json({ ok: false, error: validationError }, { status: 400 });
+  }
+
+  const alt = (formData.get('alt') as string) || file.name;
   const caption = (formData.get('caption') as string) || '';
 
-  // For simplicity, store as data URL or upload to a service
-  // In production, use S3/Cloudinary/ImageKit here
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const dataUrl = `data:${file.type};base64,${buffer.toString('base64')}`;
+  try {
+    const blob = await uploadMediaFileToBlob(file);
 
-  const created = await Media.create({
-    path: dataUrl,
-    alt,
-    caption,
-    mime: file.type,
-    size: file.size,
-  });
+    const created = await Media.create({
+      path: blob.url,
+      url: blob.url,
+      blobPathname: blob.pathname,
+      alt,
+      caption,
+      mime: blob.contentType,
+      size: blob.size,
+    });
 
-  return NextResponse.json({ ok: true, media: created }, { status: 201 });
+    return NextResponse.json({ ok: true, media: created }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: (error as Error).message || t('media.uploadFailed') },
+      { status: 500 }
+    );
+  }
 }

@@ -416,7 +416,7 @@ export async function replaceMedia(id: string, file: File, alt?: string, caption
     if (alt) formData.append('alt', alt);
     if (caption) formData.append('caption', caption);
 
-    const res = await fetchApi(`/media/${id}/replace`, {
+    const res = await fetchApi(`/media/${id}`, {
       method: 'PUT',
       body: formData,
     });

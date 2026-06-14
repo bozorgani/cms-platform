@@ -74,7 +74,9 @@ npm run dev
 - \`GET /api/v1/media\` - List
 - \`POST /api/v1/media\` - Upload (auth)
 - \`GET /api/v1/media/:id\` - Get
-- \`DELETE /api/v1/media/:id\` - Delete (auth)
+- \`PATCH /api/v1/media/:id\` - Update metadata (auth)
+- \`PUT /api/v1/media/:id\` - Replace file in Vercel Blob (auth)
+- \`DELETE /api/v1/media/:id\` - Delete from DB and Blob (auth)
 - \`GET /api/v1/users\` - List (admin)
 - \`POST /api/v1/users\` - Create (admin)
 - \`GET /api/v1/users/:id\` - Get (admin)
@@ -90,6 +92,7 @@ npm run start            # Run production
 npm run lint             # ESLint
 npm run type-check       # TypeScript check
 npm run create-user      # Create user via CLI
+npm run migrate-media-to-blob # Move legacy base64 media to Vercel Blob
 \`\`\`
 
 ## Tech Stack
@@ -141,8 +144,11 @@ MIT
 | `TRUST_PROXY` | Trust X-Forwarded-For | `true` for Vercel/proxies |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot for notifications | If you want security alerts |
 | `TELEGRAM_CHAT_ID` | Your Telegram chat ID | With TELEGRAM_BOT_TOKEN |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token | Required for media upload |
+| `BLOB_FOLDER` | Folder prefix for uploaded media | Optional, default `cms/media` |
+| `MAX_MEDIA_UPLOAD_SIZE` | Upload limit in bytes | Optional, default `10485760` |
 
-### Media Storage (اختیاری - NOT in current code)
+### Media Storage
 
 | Service | Variables | Notes |
 |---------|-----------|-------|
@@ -151,10 +157,11 @@ MIT
 | Cloudinary | `CLOUDINARY_*` | ✅ Best for images |
 | AWS S3 | `AWS_*` + `S3_BUCKET` | ✅ Scalable |
 
-**Current implementation**: Media is stored as base64 data URLs in MongoDB.
-- ✅ Works for MVP/development
-- ❌ Not scalable (16MB MongoDB doc limit)
-- 💡 Recommended: Use Vercel Blob or Cloudinary for production
+**Current implementation**: Media is uploaded to Vercel Blob and only the public Blob URL is stored in MongoDB.
+- ✅ Produces real public image URLs for the main website, SEO, OpenGraph, and `next/image`
+- ✅ Avoids large base64 payloads in API responses
+- ⚠️ Requires `BLOB_READ_WRITE_TOKEN`
+- 💡 For legacy base64 media, run `npm run migrate-media-to-blob` after setting `BLOB_READ_WRITE_TOKEN`.
 
 ## License
 

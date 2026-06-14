@@ -147,6 +147,7 @@ export interface Media {
   dominantColor?: string;
   variants?: any;
   imagekitFileId?: string;
+  blobPathname?: string;
   mime?: string;
   size?: number;
   createdAt?: string;

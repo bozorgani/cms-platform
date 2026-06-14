@@ -11,6 +11,7 @@ export interface IMedia {
   dominantColor?: string;
   variants?: any;
   imagekitFileId?: string;
+  blobPathname?: string;
   mime?: string;
   size?: number;
   createdAt?: Date;
@@ -28,6 +29,7 @@ const MediaSchema = new Schema<IMedia>(
     dominantColor: String,
     variants: Schema.Types.Mixed,
     imagekitFileId: String,
+    blobPathname: String,
     mime: String,
     size: Number,
   },
