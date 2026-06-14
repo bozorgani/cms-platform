@@ -14,7 +14,9 @@
     "reset-password": "tsx scripts/reset-password.ts",
     "create-user": "tsx scripts/create-user.ts",
     "seed": "tsx scripts/seed.ts",
-    "change-admin": "tsx scripts/change-admin.ts"
+    "change-admin": "tsx scripts/change-admin.ts",
+    "list-users": "tsx scripts/list-users.ts",
+    "emergency-reset": "tsx scripts/emergency-reset.ts"
   },
   "dependencies": {
     "@tiptap/extension-image": "^2.27.1",
