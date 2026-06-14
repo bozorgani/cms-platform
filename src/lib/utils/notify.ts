@@ -14,10 +14,10 @@ const ICONS: Record<NotifyOptions['type'], string> = {
 };
 
 const TITLES: Record<NotifyOptions['type'], string> = {
-  login_success: 'Login Successful',
-  login_failed: 'Login Failed',
+  login_success: 'ورود موفق',
+  login_failed: 'ورود ناموفق',
   '2fa_enabled': '2FA Enabled',
-  suspicious_activity: 'Suspicious Activity',
+  suspicious_activity: 'فعالیت مشکوک',
 };
 
 function format(options: NotifyOptions): string {

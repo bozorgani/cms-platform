@@ -401,7 +401,7 @@ export default function SecuritySettingsPage() {
           />
           <SecurityRow
             enabled={true}
-            label="Rate Limiting"
+            label="محدودیت نرخ"
             description="پس از ۵ تلاش ناموفق، دسترسی به مدت ۳۰ دقیقه مسدود می‌شود"
           />
           <SecurityRow

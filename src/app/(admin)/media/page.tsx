@@ -346,7 +346,7 @@ export default function MediaPage() {
                           type="text"
                           value={editAlt}
                           onChange={(e) => setEditAlt(e.target.value)}
-                          placeholder="Alt Text"
+                          placeholder="متن جایگزین"
                           className="w-full px-2 py-1 text-xs border rounded"
                           autoFocus
                         />

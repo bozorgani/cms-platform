@@ -43,11 +43,11 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 lg:p-8 text-white shadow-lg">
-        <h1 className="text-2xl lg:text-3xl font-bold mb-2">Welcome to CMS Platform</h1>
-        <p className="text-blue-100 text-sm lg:text-base">Unified admin panel + public blog + API in one project</p>
+        <h1 className="text-2xl lg:text-3xl font-bold mb-2">به پنل مدیریت CMS خوش آمدید</h1>
+        <p className="text-blue-100 text-sm lg:text-base">پنل مدیریت + بلاگ عمومی + API در یک پروژه</p>
         <div className="mt-3 text-xs text-blue-200 flex items-center gap-2">
           <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          <span>Secure authentication with HttpOnly cookies</span>
+          <span>احراز هویت امن با HttpOnly Cookie</span>
         </div>
       </div>
 
@@ -72,9 +72,9 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4">Recent Posts</h2>
+          <h2 className="text-lg font-semibold mb-4">آخرین پست‌ها</h2>
           {data.recentPosts.length === 0 ? (
-            <p className="text-gray-500 text-sm">No posts yet.</p>
+            <p className="text-gray-500 text-sm">هنوز پستی ایجاد نشده است.</p>
           ) : (
             <div className="space-y-3">
               {data.recentPosts.map((p: any) => (
@@ -91,24 +91,24 @@ export default async function DashboardPage() {
             </div>
           )}
           <Link href="/posts" className="block mt-4 text-center text-blue-600 hover:text-blue-700 font-medium">
-            View all posts →
+            مشاهده همه پست‌ها →
           </Link>
         </div>
 
         <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-4">دسترسی سریع</h2>
           <div className="grid grid-cols-2 gap-3">
             <Link href="/posts/new" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-4 text-center font-medium">
-              New Post
+              پست جدید
             </Link>
             <Link href="/categories/new" className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-4 text-center font-medium">
-              New Category
+              دسته‌بندی جدید
             </Link>
             <Link href="/media" className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg p-4 text-center font-medium">
-              Upload Media
+              آپلود رسانه
             </Link>
             <Link href="/users" className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-4 text-center font-medium">
-              Manage Users
+              مدیریت کاربران
             </Link>
           </div>
         </div>

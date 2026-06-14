@@ -76,7 +76,7 @@ export default function LoginPage() {
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold">
-              {step === 'credentials' ? 'Admin Login' : '2FA Verification'}
+              {step === 'credentials' ? 'ورود مدیر' : 'تأیید دو مرحله‌ای'}
             </h1>
           </div>
 

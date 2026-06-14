@@ -167,7 +167,7 @@ export default function SettingsPage() {
             className="w-full px-3 py-2 border rounded-md"
           >
             <option value="fa">فارسی</option>
-            <option value="en">English</option>
+            <option value="en">انگلیسی</option>
           </select>
         </div>
       </div>

@@ -26,13 +26,13 @@ interface MenuItem {
 }
 
 const MENU: MenuItem[] = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/posts', label: 'Posts', icon: FileText },
-  { href: '/categories', label: 'Categories', icon: Folder },
-  { href: '/tags', label: 'Tags', icon: Tag },
-  { href: '/media', label: 'Media', icon: ImageIcon },
-  { href: '/users', label: 'Users', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+  { href: '/posts', label: 'پست‌ها', icon: FileText },
+  { href: '/categories', label: 'دسته‌بندی‌ها', icon: Folder },
+  { href: '/tags', label: 'برچسب‌ها', icon: Tag },
+  { href: '/media', label: 'رسانه', icon: ImageIcon },
+  { href: '/users', label: 'کاربران', icon: Users },
+  { href: '/settings', label: 'تنظیمات', icon: Settings },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -104,7 +104,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="p-4 border-t">
             <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50">
               <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <span>خروج</span>
             </button>
           </div>
         </div>
