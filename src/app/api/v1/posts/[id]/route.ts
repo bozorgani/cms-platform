@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
 import { Post } from '@/lib/db/models';
 import { requireAuth } from '@/lib/auth';
+import { withPostSeoData } from '@/lib/api/seo';
 
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try { await connectToDatabase(); } catch {
@@ -13,12 +14,12 @@ export async function GET(request: NextRequest, context: { params: { id: string 
     .populate('tags', 'name slug')
     .populate('categoryId', 'name slug')
     .populate('categoryIds', 'name slug')
-    .populate('coverImageId', 'path alt')
-    .populate('seo.ogImageId', 'path alt')
+    .populate('coverImageId', 'path url alt caption width height mime size')
+    .populate('seo.ogImageId', 'path url alt caption width height mime size')
     .lean();
 
   if (!post) return NextResponse.json({ ok: false, error: t('resource.notFound') }, { status: 404 });
-  return NextResponse.json({ ok: true, post });
+  return NextResponse.json({ ok: true, post: withPostSeoData(post) });
 }
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {

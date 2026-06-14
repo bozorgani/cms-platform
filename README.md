@@ -134,7 +134,9 @@ MIT
 
 | Variable | Description | When needed |
 |----------|-------------|-------------|
-| `NEXT_PUBLIC_APP_URL` | Public URL of your site | Production (for reset links, OG tags) |
+| `NEXT_PUBLIC_APP_URL` | Public URL of CMS/admin panel | Production |
+| `NEXT_PUBLIC_SITE_NAME` | Site name for SEO structured data | `Bozorgani` |
+| `NEXT_PUBLIC_BLOG_BASE_URL` | Public blog base URL for canonical/OG URLs | `https://www.bozorgani.ir/blog` |
 | `ALLOWED_IPS` | Comma-separated IP allowlist | When you want to restrict access |
 | `TRUST_PROXY` | Trust X-Forwarded-For | `true` for Vercel/proxies |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot for notifications | If you want security alerts |

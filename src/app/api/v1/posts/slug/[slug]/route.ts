@@ -2,6 +2,7 @@ import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
 import { Post } from '@/lib/db/models';
+import { withPostSeoData } from '@/lib/api/seo';
 
 export async function GET(
   request: NextRequest,
@@ -20,8 +21,8 @@ export async function GET(
     .populate('tags', 'name slug')
     .populate('categoryId', 'name slug')
     .populate('categoryIds', 'name slug')
-    .populate('coverImageId', 'path alt')
-    .populate('seo.ogImageId', 'path alt')
+    .populate('coverImageId', 'path url alt caption width height mime size')
+    .populate('seo.ogImageId', 'path url alt caption width height mime size')
     .lean();
 
   if (!post) {
@@ -31,5 +32,5 @@ export async function GET(
   // Increment views (best-effort)
   Post.updateOne({ _id: post._id }, { $inc: { views: 1 } }).catch(() => {});
 
-  return NextResponse.json({ ok: true, post });
+  return NextResponse.json({ ok: true, post: withPostSeoData(post) });
 }

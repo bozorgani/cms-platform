@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/lib/db/connection';
 import { Post } from '@/lib/db/models';
 import { generateSlug } from '@/lib/utils';
 import { requireAuth } from '@/lib/auth';
+import { withPostSeoData } from '@/lib/api/seo';
 
 export async function GET(request: NextRequest) {
   try { await connectToDatabase(); } catch {
@@ -29,14 +30,15 @@ export async function GET(request: NextRequest) {
     .populate('tags', 'name slug')
     .populate('categoryId', 'name slug')
     .populate('categoryIds', 'name slug')
-    .populate('coverImageId', 'path alt')
+    .populate('coverImageId', 'path url alt caption width height mime size')
+    .populate('seo.ogImageId', 'path url alt caption width height mime size')
     .sort({ publishAt: -1, createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
     .lean();
   const total = await Post.countDocuments(filter);
 
-  return NextResponse.json({ ok: true, items, total, page, limit });
+  return NextResponse.json({ ok: true, items: items.map((post) => withPostSeoData(post)), total, page, limit });
 }
 
 export async function POST(request: NextRequest) {
