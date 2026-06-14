@@ -369,10 +369,38 @@ export async function deleteMedia(id: string): Promise<{ ok: boolean; error?: st
 // Users (admin only)
 // ============================================
 
-export async function listUsers(): Promise<{ ok: boolean; items?: User[]; error?: string }> {
+export interface ListUsersParams {
+  page?: number;
+  limit?: number;
+  role?: string;
+  search?: string;
+  sort?: 'createdAt' | 'email' | 'name' | 'role';
+  order?: 'asc' | 'desc';
+}
+
+export interface ListUsersResponse {
+  ok: boolean;
+  items?: User[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  error?: string;
+}
+
+export async function listUsers(params?: ListUsersParams): Promise<ListUsersResponse> {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.role) query.append('role', params.role);
+  if (params?.search) query.append('search', params.search);
+  if (params?.sort) query.append('sort', params.sort);
+  if (params?.order) query.append('order', params.order);
+
+  const qs = query.toString();
   try {
-    const res = await fetchApi('/users');
-    return await handle<{ ok: boolean; items?: User[] }>(res);
+    const res = await fetchApi('/users' + (qs ? '?' + qs : ''));
+    return await handle<ListUsersResponse>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     return { ok: false };
