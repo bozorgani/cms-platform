@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { connectToDatabase } from '@/lib/db/connection';
@@ -7,10 +8,10 @@ import { USER_ROLES } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   const auth = requireRole(request, ['admin']);
-  if (!auth) return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
+  if (!auth) return NextResponse.json({ ok: false, error: t('error.forbidden') }, { status: 403 });
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const users = await User.find().select('-passwordHash -totpSecret -backupCodes').sort({ createdAt: -1 }).lean();
@@ -19,23 +20,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const auth = requireRole(request, ['admin']);
-  if (!auth) return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
+  if (!auth) return NextResponse.json({ ok: false, error: t('error.forbidden') }, { status: 403 });
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const body = await request.json();
   if (!body.email || !body.password) {
-    return NextResponse.json({ ok: false, error: 'Email and password required' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('auth.emailAndPasswordRequired') }, { status: 400 });
   }
 
   if (body.role && !USER_ROLES.includes(body.role)) {
-    return NextResponse.json({ ok: false, error: 'Invalid role' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('auth.invalidRole') }, { status: 400 });
   }
 
   const exists = await User.findOne({ email: body.email.toLowerCase() });
-  if (exists) return NextResponse.json({ ok: false, error: 'Email already used' }, { status: 409 });
+  if (exists) return NextResponse.json({ ok: false, error: t('user.emailExists') }, { status: 409 });
 
   const passwordHash = await hash(body.password, 10);
   const created = await User.create({

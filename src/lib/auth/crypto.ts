@@ -30,7 +30,7 @@ export function encrypt(plaintext: string): string {
 
 export function decrypt(ciphertext: string): string {
   const parts = ciphertext.split(':');
-  if (parts.length !== 3) throw new Error('Invalid ciphertext format');
+  if (parts.length !== 3) throw new Error('فرمت رمزگذاری نامعتبر');
   const iv = Buffer.from(parts[0], 'hex');
   const authTag = Buffer.from(parts[1], 'hex');
   const encrypted = Buffer.from(parts[2], 'hex');

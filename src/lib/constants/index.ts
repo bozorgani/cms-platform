@@ -137,3 +137,8 @@ export const STORAGE_KEYS = {
   TOTP: 'cms-totp-secret',
   SETTINGS: 'cms-settings',
 } as const;
+
+// =============================================
+// Persian Messages
+// =============================================
+export * from './messages';

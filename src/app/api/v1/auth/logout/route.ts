@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { COOKIE_NAMES } from '@/lib/constants';
 import { notify, getClientIp } from '@/lib/utils';
@@ -26,6 +27,6 @@ export async function POST(request: NextRequest) {
   res.cookies.set(COOKIE_NAMES.USER, '', { ...clearOptions, httpOnly: false });
   res.cookies.set(COOKIE_NAMES.TOTP, '', clearOptions);
 
-  await notify({ type: 'login_success', user: email, ip, details: 'Logged out' });
+  await notify({ type: 'login_success', user: email, ip, details: t('auth.loggedOut') });
   return res;
 }

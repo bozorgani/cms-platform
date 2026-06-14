@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { COOKIE_NAMES } from '@/lib/constants';
 
@@ -6,7 +7,7 @@ export async function GET(request: NextRequest) {
   const userCookie = request.cookies.get(COOKIE_NAMES.USER)?.value;
 
   if (!token) {
-    return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ ok: false, error: t('auth.notAuthenticated') }, { status: 401 });
   }
 
   let user = null;

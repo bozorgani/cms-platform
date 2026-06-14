@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { compare } from 'bcryptjs';
 import { connectToDatabase } from '@/lib/db/connection';
@@ -11,17 +12,17 @@ export async function POST(request: NextRequest) {
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'Database unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   let body: { email?: string; password?: string; totpCode?: string };
   try { body = await request.json(); } catch {
-    return NextResponse.json({ ok: false, error: 'Invalid request' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('error.invalidRequest') }, { status: 400 });
   }
 
   const { email, password, totpCode } = body;
   if (!email || !password) {
-    return NextResponse.json({ ok: false, error: 'Email and password required' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('auth.emailAndPasswordRequired') }, { status: 400 });
   }
 
   const rateCheck = checkRateLimit(`login:${ip}:${email.toLowerCase()}`, {
@@ -31,34 +32,34 @@ export async function POST(request: NextRequest) {
   });
 
   if (!rateCheck.allowed) {
-    await notify({ type: 'login_failed', user: email, ip, userAgent, details: 'Rate limit' });
+    await notify({ type: 'login_failed', user: email, ip, userAgent, details: t('auth.rateLimit') });
     return NextResponse.json(
-      { ok: false, error: 'Too many attempts', retryAfter: rateCheck.retryAfter },
+      { ok: false, error: t('auth.tooManyAttempts'), retryAfter: rateCheck.retryAfter },
       { status: 429 }
     );
   }
 
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) {
-    return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
+    return NextResponse.json({ ok: false, error: t('auth.invalidCredentials') }, { status: 401 });
   }
 
   const passwordOk = await compare(password, user.passwordHash);
   if (!passwordOk) {
-    await notify({ type: 'login_failed', user: email, ip, userAgent, details: 'Wrong password' });
-    return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
+    await notify({ type: 'login_failed', user: email, ip, userAgent, details: t('auth.invalidCredentials') });
+    return NextResponse.json({ ok: false, error: t('auth.invalidCredentials') }, { status: 401 });
   }
 
   if (user.totpSecret) {
     if (!totpCode) {
-      return NextResponse.json({ ok: true, requires2fa: true, message: 'Enter 2FA' });
+      return NextResponse.json({ ok: true, requires2fa: true, message: t('auth.enter2fa') });
     }
     let secret: string;
     try { secret = decrypt(user.totpSecret); } catch {
-      return NextResponse.json({ ok: false, error: '2FA error' }, { status: 500 });
+      return NextResponse.json({ ok: false, error: t('auth.2faError') }, { status: 500 });
     }
     if (!verifyTOTP(secret, totpCode)) {
-      return NextResponse.json({ ok: false, error: 'Invalid 2FA' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: t('auth.invalid2fa') }, { status: 401 });
     }
   }
 

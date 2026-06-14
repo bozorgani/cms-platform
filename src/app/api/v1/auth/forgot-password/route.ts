@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { connectToDatabase } from '@/lib/db/connection';
@@ -27,24 +28,24 @@ export async function POST(request: NextRequest) {
   });
 
   if (!rateCheck.allowed) {
-    return NextResponse.json({ ok: false, error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json({ ok: false, error: t('auth.tooManyRequests') }, { status: 429 });
   }
 
   let body: { email?: string };
   try { body = await request.json(); } catch {
-    return NextResponse.json({ ok: false, error: 'Invalid request' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('error.invalidRequest') }, { status: 400 });
   }
 
   const { email } = body;
   if (!email) {
-    return NextResponse.json({ ok: false, error: 'Email required' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t('auth.emailRequired') }, { status: 400 });
   }
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
-  const response = { ok: true, message: 'If the email exists, a reset link has been sent.' };
+  const response = { ok: true, message: t('auth.passwordResetSent') };
 
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) return NextResponse.json(response);
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
   const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
   console.log('\n[PASSWORD RESET]', user.email, '->', resetLink, '\n');
-  await notify({ type: 'login_success', user: user.email, ip, details: 'Reset requested' });
+  await notify({ type: 'login_success', user: user.email, ip, details: t('auth.passwordResetRequested') });
 
   return NextResponse.json({
     ...response,

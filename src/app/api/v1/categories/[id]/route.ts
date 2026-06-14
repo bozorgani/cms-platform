@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
 import { Category } from '@/lib/db/models';
@@ -6,38 +7,38 @@ import { requireAuth } from '@/lib/auth';
 
 export async function GET(_req: NextRequest, context: { params: { id: string } }) {
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const category = await Category.findById(context.params.id).populate('parentId', 'name slug _id').lean();
-  if (!category) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+  if (!category) return NextResponse.json({ ok: false, error: t('resource.notFound') }, { status: 404 });
   return NextResponse.json({ ok: true, category });
 }
 
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   const auth = requireAuth(request);
-  if (!auth) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  if (!auth) return NextResponse.json({ ok: false, error: t('error.unauthorized') }, { status: 401 });
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const body = await request.json();
   if (body.name && !body.slug) body.slug = generateSlug(body.name);
   const updated = await Category.findByIdAndUpdate(context.params.id, body, { new: true }).lean();
-  if (!updated) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+  if (!updated) return NextResponse.json({ ok: false, error: t('resource.notFound') }, { status: 404 });
   return NextResponse.json({ ok: true, category: updated });
 }
 
 export async function DELETE(_req: NextRequest, context: { params: { id: string } }) {
   const auth = requireAuth(_req);
-  if (!auth) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  if (!auth) return NextResponse.json({ ok: false, error: t('error.unauthorized') }, { status: 401 });
 
   try { await connectToDatabase(); } catch {
-    return NextResponse.json({ ok: false, error: 'DB unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const deleted = await Category.findByIdAndDelete(context.params.id).lean();
-  if (!deleted) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+  if (!deleted) return NextResponse.json({ ok: false, error: t('resource.notFound') }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

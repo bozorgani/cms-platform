@@ -1,3 +1,4 @@
+import { t } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
 import { Post } from '@/lib/db/models';
@@ -9,7 +10,7 @@ export async function GET(
   try {
     await connectToDatabase();
   } catch {
-    return NextResponse.json({ ok: false, error: 'Database unavailable' }, { status: 503 });
+    return NextResponse.json({ ok: false, error: t('db.unavailable') }, { status: 503 });
   }
 
   const post = await Post.findOne({
@@ -24,7 +25,7 @@ export async function GET(
     .lean();
 
   if (!post) {
-    return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+    return NextResponse.json({ ok: false, error: t('resource.notFound') }, { status: 404 });
   }
 
   // Increment views (best-effort)

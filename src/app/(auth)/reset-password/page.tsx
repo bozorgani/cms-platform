@@ -26,7 +26,7 @@ function ResetForm() {
       return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match');
+      setError('رمزهای عبور مطابقت ندارند');
       return;
     }
     setError(null);

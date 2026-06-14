@@ -29,7 +29,7 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       if (!res.ok) {
-        setError(res.error || 'Login failed');
+        setError(res.error || 'خطا در ورود');
         return;
       }
       if (res.requires2fa) {

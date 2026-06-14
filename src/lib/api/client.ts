@@ -22,7 +22,7 @@ export class ApiError extends Error {
 async function handle<T>(res: Response): Promise<T> {
   if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
     window.location.href = '/login';
-    throw new ApiError('Session expired', 401);
+    throw new ApiError('Session منقضی شد', 401);
   }
   let data: unknown = null;
   const text = await res.text();
@@ -65,7 +65,7 @@ export async function login(email: string, password: string, totpCode?: string) 
     return await handle<{ ok: boolean; user?: User; requires2fa?: boolean; error?: string }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -86,7 +86,7 @@ export async function requestPasswordReset(email: string) {
     return await handle<{ ok: boolean; message?: string; error?: string; devToken?: string; devLink?: string }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -100,7 +100,7 @@ export async function resetPassword(token: string, newPassword: string) {
     return await handle<{ ok: boolean; message?: string; error?: string }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -137,7 +137,7 @@ export async function getPost(id: string): Promise<{ ok: boolean; post?: Post; e
     return await handle<{ ok: boolean; post?: Post }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -151,7 +151,7 @@ export async function createPost(data: Partial<Post>): Promise<{ ok: boolean; po
     return await handle<{ ok: boolean; post?: Post }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -165,7 +165,7 @@ export async function updatePost(id: string, data: Partial<Post>): Promise<{ ok:
     return await handle<{ ok: boolean; post?: Post }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -175,7 +175,7 @@ export async function deletePost(id: string): Promise<{ ok: boolean; error?: str
     return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -202,7 +202,7 @@ export async function getCategory(id: string): Promise<{ ok: boolean; category?:
     return await handle<{ ok: boolean; category?: Category }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -216,7 +216,7 @@ export async function createCategory(data: Partial<Category>): Promise<{ ok: boo
     return await handle<{ ok: boolean; category?: Category }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -230,7 +230,7 @@ export async function updateCategory(id: string, data: Partial<Category>): Promi
     return await handle<{ ok: boolean; category?: Category }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -240,7 +240,7 @@ export async function deleteCategory(id: string): Promise<{ ok: boolean; error?:
     return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -267,7 +267,7 @@ export async function getTag(id: string): Promise<{ ok: boolean; tag?: Tag; erro
     return await handle<{ ok: boolean; tag?: Tag }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -281,7 +281,7 @@ export async function createTag(data: Partial<Tag>): Promise<{ ok: boolean; tag?
     return await handle<{ ok: boolean; tag?: Tag }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -295,7 +295,7 @@ export async function updateTag(id: string, data: Partial<Tag>): Promise<{ ok: b
     return await handle<{ ok: boolean; tag?: Tag }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -305,7 +305,7 @@ export async function deleteTag(id: string): Promise<{ ok: boolean; error?: stri
     return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -333,7 +333,7 @@ export async function getMedia(id: string): Promise<{ ok: boolean; media?: Media
     return await handle<{ ok: boolean; media?: Media }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -351,7 +351,7 @@ export async function uploadMedia(file: File, alt?: string, caption?: string): P
     return await handle<{ ok: boolean; media?: Media }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -361,7 +361,7 @@ export async function deleteMedia(id: string): Promise<{ ok: boolean; error?: st
     return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -405,7 +405,7 @@ export async function updateMedia(id: string, updates: { alt?: string; caption?:
     return await handle<{ ok: boolean; media?: Media }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -423,7 +423,7 @@ export async function replaceMedia(id: string, file: File, alt?: string, caption
     return await handle<{ ok: boolean; media?: Media }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -457,7 +457,7 @@ export async function deleteUser(id: string): Promise<{ ok: boolean; error?: str
     return await handle<{ ok: boolean }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -471,7 +471,7 @@ export async function updateUser(id: string, data: { name?: string; role?: strin
     return await handle<{ ok: boolean; user?: User }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }
 
@@ -485,6 +485,6 @@ export async function createUser(data: { email: string; password: string; name?:
     return await handle<{ ok: boolean; user?: User }>(res);
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'Network error' };
+    return { ok: false, error: 'خطای شبکه' };
   }
 }

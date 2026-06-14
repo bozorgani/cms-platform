@@ -19,7 +19,7 @@ function ask(q: string): Promise<string> {
 }
 
 async function main() {
-  console.log('\n=== CMS Platform - Create User ===\n');
+  console.log('\n=== پلتفرم CMS - ایجاد کاربر ===\n');
   const args = process.argv.slice(2);
   let email: string, password: string, name: string, role: UserRole;
 
@@ -29,33 +29,33 @@ async function main() {
     name = args[2] || '';
     role = (args[3] as UserRole) || 'author';
   } else if (args.length === 0) {
-    email = await ask('Email: ');
-    password = await ask('Password (min 8): ');
-    if (password.length < 8) { log.err('Min 8 chars'); process.exit(1); }
-    name = await ask('Name: ');
+    email = await ask('ایمیل: ');
+    password = await ask('رمز عبور (حداقل ۸): ');
+    if (password.length < 8) { log.err('حداقل ۸ کاراکتر'); process.exit(1); }
+    name = await ask('نام: ');
     role = (await ask('Role (' + USER_ROLES.join('/') + ') [author]: ') as UserRole) || 'author';
   } else {
-    console.log('Usage: npm run create-user -- <email> <password> <name> [role]');
+    console.log('استفاده: npm run create-user -- <email> <password> <name> [role]');
     process.exit(1);
   }
 
-  if (!USER_ROLES.includes(role)) { log.err('Invalid role'); process.exit(1); }
+  if (!USER_ROLES.includes(role)) { log.err('نقش نامعتبر'); process.exit(1); }
 
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cms-platform';
-  log.info('Connecting...');
+  log.info('در حال اتصال...');
   await mongoose.connect(uri);
   log.ok('Connected');
 
   const exists = await User.findOne({ email: email.toLowerCase() });
-  if (exists) { log.err('Email already exists'); await mongoose.disconnect(); process.exit(1); }
+  if (exists) { log.err('ایمیل قبلاً وجود دارد'); await mongoose.disconnect(); process.exit(1); }
 
   const passwordHash = await bcrypt.hash(password, 10);
   await User.create({ email: email.toLowerCase(), passwordHash, name, role });
   await mongoose.disconnect();
-  log.ok('User created!');
-  console.log('\nEmail:   ' + email);
-  console.log('Name:    ' + name);
-  console.log('Role:    ' + role);
+  log.ok('کاربر ایجاد شد!');
+  console.log('\nایمیل:   ' + email);
+  console.log('نام:    ' + name);
+  console.log('نقش:    ' + role);
 }
 
 main().catch((e) => { log.err((e as Error).message); process.exit(1); });
