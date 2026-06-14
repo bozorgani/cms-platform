@@ -488,3 +488,25 @@ export async function createUser(data: { email: string; password: string; name?:
     return { ok: false, error: 'خطای شبکه' };
   }
 }
+
+// ============================================
+// Me (Current User Profile)
+// ============================================
+
+export async function updateMe(data: {
+  email?: string;
+  password?: string;
+  name?: string;
+}): Promise<{ ok: boolean; user?: User; error?: string; message?: string }> {
+  try {
+    const res = await fetchApi('/auth/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await handle<{ ok: boolean; user?: User; message?: string }>(res);
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    return { ok: false, error: 'Network error' };
+  }
+}
