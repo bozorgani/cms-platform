@@ -1,10 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Lock, KeyRound, AlertTriangle, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
-import { login, getCurrentUser, fetchCurrentUser } from '@/lib/api/client';
+import { Shield, Lock, AlertTriangle, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { login, fetchCurrentUser } from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
-import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -110,11 +109,6 @@ export default function LoginPage() {
               <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Continue<ArrowRight className="w-4 h-4" /></>}
               </button>
-              <div className="text-center text-sm">
-                <Link href="/forgot-password" className="text-blue-600 hover:text-blue-700">
-                  <KeyRound className="w-3 h-3 inline" /> Forgot password?
-                </Link>
-              </div>
             </form>
           ) : (
             <form onSubmit={handleTotp} className="space-y-4">

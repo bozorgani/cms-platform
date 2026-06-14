@@ -3,7 +3,23 @@ import { IMAGE_EXTENSIONS } from '@/lib/constants';
 // Image check
 export function isImage(path: string | undefined | null): boolean {
   if (!path) return false;
-  return IMAGE_EXTENSIONS.test(path);
+
+  const value = path.trim();
+
+  // Current media upload stores images as MongoDB data URLs, e.g.
+  // data:image/png;base64,... . These do not end with .png/.jpg, so an
+  // extension-only check would incorrectly render them as generic files.
+  if (value.startsWith('data:image/')) return true;
+
+  // Support normal file paths and URLs, including URLs with query strings.
+  try {
+    const pathname = value.startsWith('http://') || value.startsWith('https://')
+      ? new URL(value).pathname
+      : value.split('?')[0].split('#')[0];
+    return IMAGE_EXTENSIONS.test(pathname);
+  } catch {
+    return IMAGE_EXTENSIONS.test(value);
+  }
 }
 
 // Slug generation

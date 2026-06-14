@@ -42,7 +42,6 @@ export const RATE_LIMITS = {
   LOGIN: { points: 5, duration: 60 * 15 }, // 5 attempts per 15 min
   REGISTER: { points: 3, duration: 60 * 60 }, // 3 per hour
   API: { points: 100, duration: 60 }, // 100 per minute
-  PASSWORD_RESET: { points: 3, duration: 60 * 60 }, // 3 per hour
 } as const;
 
 // =============================================

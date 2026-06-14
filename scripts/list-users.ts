@@ -44,10 +44,9 @@ async function main() {
   console.log('└────────────────────────────────┴──────────────┴──────────┴────────────────┘');
 
   // پیشنهاد بعدی
-  console.log('\n💡 برای تغییر رمز کاربر:');
-  if (users.length > 0) {
-    console.log(`   npm run reset-password -- "${users[0].email}" NewPassword123`);
-  }
+  console.log('\n💡 برای تغییر ایمیل/رمز مدیر از ابزارهای مدیریتی موجود استفاده کنید:');
+  console.log('   npm run change-admin -- <old-email> <new-email> <new-password>');
+  console.log('   npm run emergency-reset -- <email> <new-password>');
 
   await mongoose.disconnect();
 }

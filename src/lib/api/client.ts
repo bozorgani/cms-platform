@@ -76,34 +76,6 @@ export async function logout() {
   if (typeof window !== 'undefined') window.location.href = '/login';
 }
 
-export async function requestPasswordReset(email: string) {
-  try {
-    const res = await fetchApi('/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    return await handle<{ ok: boolean; message?: string; error?: string; devToken?: string; devLink?: string }>(res);
-  } catch (e) {
-    if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'خطای شبکه' };
-  }
-}
-
-export async function resetPassword(token: string, newPassword: string) {
-  try {
-    const res = await fetchApi('/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword }),
-    });
-    return await handle<{ ok: boolean; message?: string; error?: string }>(res);
-  } catch (e) {
-    if (e instanceof ApiError) return { ok: false, error: e.message };
-    return { ok: false, error: 'خطای شبکه' };
-  }
-}
-
 // ============================================
 // Posts
 // ============================================

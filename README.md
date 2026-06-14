@@ -50,16 +50,12 @@ npm run dev
 
 ### Auth
 - \`/login\` - Login
-- \`/forgot-password\` - Request reset link
-- \`/reset-password?token=xxx\` - Reset with token
 
 ### API (versioned at /v1)
 - \`GET /api/v1/health\` - Health check
 - \`POST /api/v1/auth/login\` - Login
 - \`POST /api/v1/auth/logout\` - Logout
 - \`GET /api/v1/auth/me\` - Current user
-- \`POST /api/v1/auth/forgot-password\` - Request reset
-- \`POST /api/v1/auth/reset-password\` - Reset with token
 - \`GET /api/v1/posts\` - List posts
 - \`POST /api/v1/posts\` - Create post (auth)
 - \`GET /api/v1/posts/:id\` - Get post
@@ -94,7 +90,6 @@ npm run start            # Run production
 npm run lint             # ESLint
 npm run type-check       # TypeScript check
 npm run create-user      # Create user via CLI
-npm run reset-password   # Reset password via CLI
 \`\`\`
 
 ## Tech Stack
