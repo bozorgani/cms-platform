@@ -13,7 +13,8 @@
     "type-check": "tsc --noEmit",
     "reset-password": "tsx scripts/reset-password.ts",
     "create-user": "tsx scripts/create-user.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "change-admin": "tsx scripts/change-admin.ts"
   },
   "dependencies": {
     "@tiptap/extension-image": "^2.27.1",
