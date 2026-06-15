@@ -53,6 +53,8 @@ npm run dev
 
 ### API (versioned at /v1)
 - \`GET /api/v1/health\` - Health check
+- \`GET /api/v1/seo/sitemap\` - XML sitemap for published blog posts
+- \`GET /api/v1/seo/sitemap?format=json\` - Sitemap data as JSON
 - \`POST /api/v1/auth/login\` - Login
 - \`POST /api/v1/auth/logout\` - Logout
 - \`GET /api/v1/auth/me\` - Current user
