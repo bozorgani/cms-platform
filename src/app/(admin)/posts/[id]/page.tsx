@@ -265,10 +265,44 @@ function validateSeoLengths(data: PostInput): SeoLengthValidation {
 }
 
 
+type KeywordDensityStatus = 'missing' | 'low' | 'ok' | 'high';
+
 interface KeywordAnalysis {
   keyword: string;
   count: number;
+  contentCount: number;
+  titleCount: number;
+  excerptCount: number;
   density: number;
+  totalDensity: number;
+  keywordWords: number;
+  contentWords: number;
+  totalWords: number;
+  status: KeywordDensityStatus;
+}
+
+function countPhraseOccurrences(words: string[], phraseWords: string[]): number {
+  if (!words.length || !phraseWords.length || phraseWords.length > words.length) return 0;
+
+  let count = 0;
+  for (let i = 0; i <= words.length - phraseWords.length; i++) {
+    let matched = true;
+    for (let j = 0; j < phraseWords.length; j++) {
+      if (words[i + j] !== phraseWords[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) count++;
+  }
+  return count;
+}
+
+function keywordDensityStatus(density: number, count: number): KeywordDensityStatus {
+  if (count === 0) return 'missing';
+  if (density < 0.3) return 'low';
+  if (density > 2.5) return 'high';
+  return 'ok';
 }
 
 function calculateKeywordDensity(
@@ -280,40 +314,61 @@ function calculateKeywordDensity(
   if (!keywords?.length) return [];
 
   const contentText = extractTextFromContent(content as any);
-  const fullText = [title, excerpt, contentText].filter(Boolean).join(' ');
+  const contentWords = tokenizeKeywordText(contentText);
+  const titleWords = tokenizeKeywordText(title);
+  const excerptWords = tokenizeKeywordText(excerpt);
+  const totalWordsList = [...titleWords, ...excerptWords, ...contentWords];
 
-  if (!fullText) return [];
-
-  const normalizedText = fullText
-    .toLowerCase()
-    .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-z0-9\s]/g, ' ');
-  const words = normalizedText.split(/\s+/).filter((w) => w.length > 0);
-  const totalWords = words.length;
-
-  if (totalWords === 0) return [];
+  const contentWordCount = contentWords.length;
+  const totalWordCount = totalWordsList.length;
+  if (totalWordCount === 0) return [];
 
   return keywords.map((keyword) => {
-    const normalizedKeyword = keyword.toLowerCase().trim();
-    if (!normalizedKeyword) return { keyword, count: 0, density: 0 };
+    const normalizedKeyword = normalizeKeyword(keyword);
+    const keywordWords = tokenizeKeywordText(normalizedKeyword);
 
-    const keywordWords = normalizedKeyword.split(/\s+/);
-    let count = 0;
-
-    if (keywordWords.length === 1) {
-      count = words.filter((w) => w === normalizedKeyword).length;
-    } else {
-      const phrase = normalizedKeyword;
-      let index = 0;
-      while ((index = normalizedText.indexOf(phrase, index)) !== -1) {
-        count++;
-        index += phrase.length;
-      }
+    if (!normalizedKeyword || keywordWords.length === 0) {
+      return {
+        keyword,
+        count: 0,
+        contentCount: 0,
+        titleCount: 0,
+        excerptCount: 0,
+        density: 0,
+        totalDensity: 0,
+        keywordWords: 0,
+        contentWords: contentWordCount,
+        totalWords: totalWordCount,
+        status: 'missing',
+      };
     }
 
-    const density = totalWords > 0 ? (count / totalWords) * 100 : 0;
-    return { keyword, count, density: Math.round(density * 100) / 100 };
+    const contentCount = countPhraseOccurrences(contentWords, keywordWords);
+    const titleCount = countPhraseOccurrences(titleWords, keywordWords);
+    const excerptCount = countPhraseOccurrences(excerptWords, keywordWords);
+    const count = contentCount + titleCount + excerptCount;
+
+    // Density is based on exact phrase coverage in the article body only.
+    // For multi-word phrases, using count * phraseWords gives a realistic percentage of body words.
+    const density = contentWordCount > 0 ? (contentCount * keywordWords.length * 100) / contentWordCount : 0;
+    const totalDensity = totalWordCount > 0 ? (count * keywordWords.length * 100) / totalWordCount : 0;
+
+    return {
+      keyword: normalizedKeyword,
+      count,
+      contentCount,
+      titleCount,
+      excerptCount,
+      density: Math.round(density * 100) / 100,
+      totalDensity: Math.round(totalDensity * 100) / 100,
+      keywordWords: keywordWords.length,
+      contentWords: contentWordCount,
+      totalWords: totalWordCount,
+      status: keywordDensityStatus(density, contentCount),
+    };
   });
 }
+
 
 export default function PostEditPage() {
   const router = useRouter();
@@ -1230,8 +1285,9 @@ export default function PostEditPage() {
                 <div className="space-y-3">
                   {keywordDensity.map((item, idx) => {
                     const densityPercent = Math.min(item.density, 5);
-                    const isOptimal = item.density >= 1 && item.density <= 3;
-                    const isHigh = item.density > 3;
+                    const isOptimal = item.status === 'ok';
+                    const isHigh = item.status === 'high';
+                    const isMissing = item.status === 'missing';
 
                     return (
                       <div key={idx} className="p-3 bg-gray-50 rounded-lg border">
@@ -1239,12 +1295,12 @@ export default function PostEditPage() {
                           <div className="flex-1">
                             <span className="text-sm font-semibold text-gray-900">{item.keyword}</span>
                             <span className="text-xs text-gray-500 mr-2">
-                              ({item.count} بار در محتوا)
+                              ({item.contentCount} بار در متن اصلی، {item.titleCount} در عنوان، {item.excerptCount} در خلاصه)
                             </span>
                           </div>
                           <span
                             className={`text-sm font-bold ${
-                              isOptimal ? 'text-green-600' : isHigh ? 'text-yellow-600' : 'text-red-600'
+                              isOptimal ? 'text-green-600' : isMissing ? 'text-red-600' : 'text-yellow-600'
                             }`}
                           >
                             {item.density.toFixed(2)}%
@@ -1258,23 +1314,35 @@ export default function PostEditPage() {
                             style={{ width: `${(densityPercent / 5) * 100}%` }}
                           />
                         </div>
-                        <div className="flex items-center gap-4 text-xs">
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
+                          <span className="text-gray-500">
+                            مبنا: {item.contentWords} کلمه متن اصلی، عبارت {item.keywordWords} کلمه‌ای
+                          </span>
+                          <span className="text-gray-500">
+                            چگالی کل با عنوان/خلاصه: {item.totalDensity.toFixed(2)}%
+                          </span>
                           {isOptimal && (
                             <span className="text-green-600 flex items-center gap-1">
                               <span>✓</span>
-                              <span>چگالی مناسب</span>
+                              <span>چگالی متن اصلی مناسب است</span>
                             </span>
                           )}
                           {isHigh && (
                             <span className="text-yellow-600 flex items-center gap-1">
                               <span>⚠</span>
-                              <span>چگالی بالا - ممکن است اسپم تلقی شود</span>
+                              <span>چگالی بالا - ممکن است keyword stuffing تلقی شود</span>
                             </span>
                           )}
-                          {!isOptimal && !isHigh && (
+                          {isMissing && (
                             <span className="text-red-600 flex items-center gap-1">
                               <span>!</span>
-                              <span>چگالی پایین - باید بیشتر استفاده شود</span>
+                              <span>این عبارت دقیقاً در متن اصلی پیدا نشد</span>
+                            </span>
+                          )}
+                          {!isOptimal && !isHigh && !isMissing && (
+                            <span className="text-yellow-600 flex items-center gap-1">
+                              <span>!</span>
+                              <span>چگالی متن اصلی پایین است</span>
                             </span>
                           )}
                         </div>
@@ -1284,8 +1352,7 @@ export default function PostEditPage() {
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-xs text-blue-800">
-                    <strong>راهنمای چگالی:</strong> چگالی مناسب بین 1-3% است. کمتر از 1% ممکن است
-                    برای SEO کافی نباشد و بیشتر از 3% ممکن است به عنوان اسپم تلقی شود.
+                    <strong>راهنمای چگالی:</strong> چگالی حالا بر اساس تطبیق دقیق عبارت در متن اصلی محاسبه می‌شود، نه جستجوی ساده داخل کل متن. برای عبارت‌های چندکلمه‌ای، تعداد کلمات عبارت هم در درصد لحاظ می‌شود. بازه مناسب پیشنهادی حدود 0.3% تا 2.5% است.
                   </p>
                 </div>
               </div>
