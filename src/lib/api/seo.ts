@@ -97,6 +97,21 @@ function compactObject<T extends Record<string, unknown>>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
+
+function uniqueStringList(values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values.flat()) {
+    if (typeof value !== 'string') continue;
+    const clean = value.trim();
+    const key = clean.toLowerCase();
+    if (!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out;
+}
+
 export function buildPostSeoData(post: any) {
   const blogBaseUrl = getBlogBaseUrl();
   const siteName = getSiteName();
@@ -115,6 +130,11 @@ export function buildPostSeoData(post: any) {
 
   const tags = Array.isArray(post.tags) ? post.tags : [];
   const tagNames = tags.map(refName).filter(Boolean) as string[];
+  const keywords = uniqueStringList([
+    post.focusKeyword,
+    Array.isArray(post.lsiKeywords) ? post.lsiKeywords : [],
+    Array.isArray(post.keywords) ? post.keywords : [],
+  ]);
   const categories = [post.categoryId, ...(Array.isArray(post.categoryIds) ? post.categoryIds : [])]
     .filter(Boolean)
     .map((category) => ({
@@ -151,7 +171,7 @@ export function buildPostSeoData(post: any) {
         '@type': 'Organization',
         name: siteName,
       },
-      keywords: Array.isArray(post.keywords) && post.keywords.length ? post.keywords.join(', ') : undefined,
+      keywords: keywords.length ? keywords.join(', ') : undefined,
       articleSection: primaryCategory?.name || primaryCategory?.slug,
     });
 
@@ -160,7 +180,9 @@ export function buildPostSeoData(post: any) {
     description,
     canonicalUrl,
     robots: post.seo?.robots || 'index, follow',
-    keywords: Array.isArray(post.keywords) ? post.keywords : [],
+    focusKeyword: post.focusKeyword || undefined,
+    lsiKeywords: Array.isArray(post.lsiKeywords) ? post.lsiKeywords : [],
+    keywords,
     contentText,
     readingTime: post.readingTime || undefined,
     image,

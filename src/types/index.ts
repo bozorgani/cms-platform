@@ -67,6 +67,8 @@ export interface Post {
   categoryId?: string | Category;
   categoryIds?: (string | Category)[];
   tags?: (string | Tag)[];
+  focusKeyword?: string;
+  lsiKeywords?: string[];
   keywords?: string[];
   coverImageId?: string | Media;
   canonicalUrl?: string;
@@ -86,6 +88,8 @@ export interface PostInput {
   categoryId?: string;
   categoryIds?: string[];
   tags?: string[];
+  focusKeyword?: string;
+  lsiKeywords?: string[];
   keywords?: string[];
   coverImageId?: string;
   canonicalUrl?: string;

@@ -88,37 +88,76 @@ function ngrams(words: string[], size: number): string[] {
   return out;
 }
 
+interface KeywordSuggestionOptions {
+  focusKeyword?: string;
+  selectedKeywords?: string[];
+  preferLongTail?: boolean;
+  includeSingleWords?: boolean;
+  limit?: number;
+}
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/[.!؟?\n]+/)
+    .map((sentence) => normalizeKeyword(sentence))
+    .filter(Boolean);
+}
+
 function generateKeywordSuggestions(
   selectedKeywords: string[],
   content: TiptapContent | null,
   title = '',
-  excerpt = ''
+  excerpt = '',
+  options: KeywordSuggestionOptions = {}
 ): string[] {
   const contentText = extractTextFromContent(content as any);
-  const fullWords = tokenizeKeywordText([title, excerpt, contentText].filter(Boolean).join(' '));
+  const fullText = [title, excerpt, contentText].filter(Boolean).join(' ');
+  const fullWords = tokenizeKeywordText(fullText);
   const titleText = normalizeKeyword(title);
   const excerptText = normalizeKeyword(excerpt);
-  const selected = new Set(selectedKeywords.map(normalizeKeyword));
+  const focusKeyword = normalizeKeyword(options.focusKeyword || '');
+  const selected = new Set([...(selectedKeywords || []), ...(options.selectedKeywords || [])].map(normalizeKeyword));
 
   if (fullWords.length === 0) return [];
 
+  const sentences = splitSentences(fullText);
+  const focusSentences = focusKeyword
+    ? sentences.filter((sentence) => sentence.includes(focusKeyword))
+    : [];
+
   const scores = new Map<string, number>();
-  for (const size of [3, 2, 1]) {
+  const sizes = options.includeSingleWords ? [3, 2, 1] : [4, 3, 2];
+
+  for (const size of sizes) {
     for (const phrase of ngrams(fullWords, size)) {
-      if (phrase.length < 3 || selected.has(phrase)) continue;
-      const base = size === 1 ? 1 : size * 2;
-      const titleBoost = titleText.includes(phrase) ? 7 : 0;
-      const excerptBoost = excerptText.includes(phrase) ? 3 : 0;
-      scores.set(phrase, (scores.get(phrase) || 0) + base + titleBoost + excerptBoost);
+      if (phrase.length < 3 || selected.has(phrase) || phrase === focusKeyword) continue;
+      if (!options.includeSingleWords && phrase.split(' ').length < 2) continue;
+
+      const phraseLength = phrase.split(' ').length;
+      const longTailBoost = options.preferLongTail ? phraseLength * 3 : phraseLength * 1.5;
+      const titleBoost = titleText.includes(phrase) ? 10 : 0;
+      const excerptBoost = excerptText.includes(phrase) ? 5 : 0;
+      const focusBoost = focusSentences.some((sentence) => sentence.includes(phrase)) ? 7 : 0;
+      const exactFocusPartBoost = focusKeyword && phrase.includes(focusKeyword) ? 4 : 0;
+
+      scores.set(
+        phrase,
+        (scores.get(phrase) || 0) + 1 + longTailBoost + titleBoost + excerptBoost + focusBoost + exactFocusPartBoost
+      );
     }
   }
 
   return [...scores.entries()]
     .filter(([phrase]) => !selected.has(phrase))
     .sort((a, b) => b[1] - a[1] || b[0].split(' ').length - a[0].split(' ').length || a[0].localeCompare(b[0], 'fa'))
-    .slice(0, 18)
+    .slice(0, options.limit || 18)
     .map(([phrase]) => phrase);
 }
+
+function allSeoKeywords(focusKeyword?: string, lsiKeywords?: string[], keywords?: string[]): string[] {
+  return uniqueKeywords([focusKeyword || '', ...(lsiKeywords || []), ...(keywords || [])]);
+}
+
 
 interface KeywordAnalysis {
   keyword: string;
@@ -189,6 +228,7 @@ export default function PostEditPage() {
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [creatingTag, setCreatingTag] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
+  const [lsiKeywordInput, setLsiKeywordInput] = useState('');
 
   const [formData, setFormData] = useState<PostInput>({
     title: '',
@@ -200,6 +240,8 @@ export default function PostEditPage() {
     categoryId: '',
     categoryIds: [],
     tags: [],
+    focusKeyword: '',
+    lsiKeywords: [],
     keywords: [],
     coverImageId: '',
     canonicalUrl: '',
@@ -240,6 +282,8 @@ export default function PostEditPage() {
               .map((t: any) => (typeof t === 'string' ? t : t?._id?.toString() || ''))
               .filter(Boolean)
           : [],
+        focusKeyword: post.focusKeyword || '',
+        lsiKeywords: Array.isArray(post.lsiKeywords) ? post.lsiKeywords : [],
         keywords: Array.isArray(post.keywords) ? post.keywords : [],
         coverImageId:
           typeof post.coverImageId === 'string'
@@ -361,6 +405,31 @@ export default function PostEditPage() {
     }));
   }
 
+  function addLsiKeywords(raw: string | string[]) {
+    const values = Array.isArray(raw) ? raw : raw.split(KEYWORD_SPLIT_REGEX);
+    const nextKeywords = uniqueKeywords([...(formData.lsiKeywords || []), ...values]);
+    setFormData((prev) => ({ ...prev, lsiKeywords: nextKeywords }));
+    setLsiKeywordInput('');
+  }
+
+  function removeLsiKeyword(keyword: string) {
+    const normalized = normalizeKeyword(keyword);
+    setFormData((prev) => ({
+      ...prev,
+      lsiKeywords: (prev.lsiKeywords || []).filter((item) => normalizeKeyword(item) !== normalized),
+    }));
+  }
+
+  function setFocusKeyword(keyword: string) {
+    const normalized = normalizeKeyword(keyword);
+    setFormData((prev) => ({
+      ...prev,
+      focusKeyword: normalized,
+      lsiKeywords: (prev.lsiKeywords || []).filter((item) => normalizeKeyword(item) !== normalized),
+      keywords: (prev.keywords || []).filter((item) => normalizeKeyword(item) !== normalized),
+    }));
+  }
+
   function handleKeywordInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' || e.key === ',' || e.key === '،') {
       e.preventDefault();
@@ -370,6 +439,17 @@ export default function PostEditPage() {
       removeKeyword(formData.keywords[formData.keywords.length - 1]);
     }
   }
+
+  function handleLsiKeywordInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',' || e.key === '،') {
+      e.preventDefault();
+      if (lsiKeywordInput.trim()) addLsiKeywords(lsiKeywordInput);
+    }
+    if (e.key === 'Backspace' && !lsiKeywordInput && formData.lsiKeywords?.length) {
+      removeLsiKeyword(formData.lsiKeywords[formData.lsiKeywords.length - 1]);
+    }
+  }
+
 
   async function handleSave() {
     if (!formData.title.trim()) {
@@ -385,6 +465,8 @@ export default function PostEditPage() {
         categoryId: formData.categoryId || undefined,
         categoryIds: formData.categoryIds?.length ? formData.categoryIds : undefined,
         tags: formData.tags?.length ? formData.tags : undefined,
+        focusKeyword: formData.focusKeyword?.trim() || undefined,
+        lsiKeywords: formData.lsiKeywords?.length ? formData.lsiKeywords : undefined,
         keywords: formData.keywords?.length ? formData.keywords : undefined,
         coverImageId: formData.coverImageId || undefined,
         seo: {
@@ -408,14 +490,33 @@ export default function PostEditPage() {
     }
   }
 
-  const keywordDensity = useMemo(
-    () => calculateKeywordDensity(formData.keywords || [], formData.content, formData.title, formData.excerpt || ''),
-    [formData.keywords, formData.content, formData.title, formData.excerpt]
+  const allSelectedSeoKeywords = useMemo(
+    () => allSeoKeywords(formData.focusKeyword, formData.lsiKeywords, formData.keywords),
+    [formData.focusKeyword, formData.lsiKeywords, formData.keywords]
   );
 
-  const keywordSuggestions = useMemo(
-    () => generateKeywordSuggestions(formData.keywords || [], formData.content, formData.title, formData.excerpt || ''),
-    [formData.keywords, formData.content, formData.title, formData.excerpt]
+  const keywordDensity = useMemo(
+    () => calculateKeywordDensity(allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt || ''),
+    [allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt]
+  );
+
+  const primaryKeywordSuggestions = useMemo(
+    () => generateKeywordSuggestions(allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt || '', {
+      preferLongTail: true,
+      includeSingleWords: false,
+      limit: 10,
+    }),
+    [allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt]
+  );
+
+  const lsiKeywordSuggestions = useMemo(
+    () => generateKeywordSuggestions(allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt || '', {
+      focusKeyword: formData.focusKeyword,
+      preferLongTail: false,
+      includeSingleWords: true,
+      limit: 18,
+    }),
+    [allSelectedSeoKeywords, formData.content, formData.title, formData.excerpt, formData.focusKeyword]
   );
 
   const metaTitleLength = formData.seo?.metaTitle?.length || 0;
@@ -755,15 +856,181 @@ export default function PostEditPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 space-y-4">
             <h2 className="text-lg font-semibold">کلمات کلیدی</h2>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <label htmlFor="post-keywords" className="block text-sm font-medium">
-                  کلمات کلیدی SEO
-                </label>
-                <span className="text-xs text-gray-500">{formData.keywords?.length || 0} کلمه</span>
+            {/* Focus Keyword */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <label htmlFor="focus-keyword" className="block text-sm font-semibold text-blue-950">
+                    Keyword اصلی (Focus Keyword)
+                  </label>
+                  <p className="text-xs text-blue-700 mt-1">
+                    مهم‌ترین عبارت هدف مقاله؛ بهتر است در عنوان، URL، مقدمه و Meta Description حضور داشته باشد.
+                  </p>
+                </div>
+                {formData.focusKeyword && (
+                  <button
+                    type="button"
+                    onClick={() => setFocusKeyword('')}
+                    className="text-xs text-blue-700 hover:text-red-600"
+                  >
+                    حذف Keyword اصلی
+                  </button>
+                )}
               </div>
 
-              <div className="min-h-14 rounded-lg border border-gray-300 bg-gray-50 p-2 focus-within:ring-2 focus-within:ring-blue-200 focus-within:border-blue-500">
+              <input
+                id="focus-keyword"
+                type="text"
+                value={formData.focusKeyword || ''}
+                onChange={(e) => setFormData((prev) => ({ ...prev, focusKeyword: e.target.value }))}
+                onBlur={(e) => setFocusKeyword(e.target.value)}
+                className="w-full px-3 py-2 border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                placeholder="مثلاً: ثبت شرکت در ایران"
+              />
+
+              {primaryKeywordSuggestions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-blue-900">پیشنهادهای دقیق برای Keyword اصلی:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {primaryKeywordSuggestions.map((keyword) => (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => setFocusKeyword(keyword)}
+                        className="rounded-full border border-blue-300 bg-white px-3 py-1 text-sm text-blue-800 hover:bg-blue-100"
+                      >
+                        انتخاب: {keyword}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* LSI Keywords */}
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <label htmlFor="lsi-keywords" className="block text-sm font-semibold text-green-950">
+                    LSI Keywords / کلمات مرتبط معنایی
+                  </label>
+                  <p className="text-xs text-green-700 mt-1">
+                    عبارت‌های هم‌معنا و مرتبط که به گوگل کمک می‌کنند موضوع مقاله را بهتر بفهمد.
+                  </p>
+                </div>
+                <span className="text-xs text-green-700">{formData.lsiKeywords?.length || 0} مورد</span>
+              </div>
+
+              <div className="min-h-14 rounded-lg border border-green-300 bg-white p-2 focus-within:ring-2 focus-within:ring-green-200 focus-within:border-green-500">
+                <div className="flex flex-wrap items-center gap-2">
+                  {(formData.lsiKeywords || []).map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 px-3 py-1 text-sm"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => removeLsiKeyword(keyword)}
+                        className="text-green-700 hover:text-red-600 font-bold leading-none"
+                        aria-label={`حذف ${keyword}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    id="lsi-keywords"
+                    type="text"
+                    value={lsiKeywordInput}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      if (KEYWORD_SPLIT_REGEX.test(nextValue)) {
+                        addLsiKeywords(nextValue);
+                      } else {
+                        setLsiKeywordInput(nextValue);
+                      }
+                    }}
+                    onKeyDown={handleLsiKeywordInputKeyDown}
+                    onBlur={() => lsiKeywordInput.trim() && addLsiKeywords(lsiKeywordInput)}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData('text');
+                      if (KEYWORD_SPLIT_REGEX.test(text)) {
+                        e.preventDefault();
+                        addLsiKeywords(text);
+                      }
+                    }}
+                    className="min-w-48 flex-1 bg-transparent px-2 py-1 text-sm outline-none"
+                    placeholder="مثلاً: مدارک ثبت شرکت، هزینه ثبت شرکت، شناسه ملی"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => lsiKeywordInput.trim() && addLsiKeywords(lsiKeywordInput)}
+                  disabled={!lsiKeywordInput.trim()}
+                  className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
+                >
+                  افزودن LSI
+                </button>
+                {(formData.lsiKeywords?.length || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, lsiKeywords: [] }))}
+                    className="px-3 py-1.5 rounded-md border border-green-300 text-sm hover:bg-white"
+                  >
+                    پاک کردن LSIها
+                  </button>
+                )}
+              </div>
+
+              {lsiKeywordSuggestions.length > 0 && (
+                <div className="space-y-2 border-t border-green-200 pt-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p className="text-xs font-medium text-green-900">
+                      پیشنهادهای LSI {formData.focusKeyword ? `برای «${formData.focusKeyword}»` : 'بر اساس متن مقاله'}:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => addLsiKeywords(lsiKeywordSuggestions.slice(0, 10))}
+                      className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 whitespace-nowrap"
+                    >
+                      افزودن ۱۰ پیشنهاد اول
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {lsiKeywordSuggestions.map((keyword) => (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => addLsiKeywords(keyword)}
+                        className="rounded-full border border-green-300 bg-white px-3 py-1 text-sm text-green-800 hover:bg-green-100"
+                      >
+                        + {keyword}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Extra Keywords */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <label htmlFor="post-keywords" className="block text-sm font-semibold text-gray-900">
+                    کلمات کلیدی تکمیلی / Meta Keywords
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    برای عبارت‌های فرعی یا long-tailهایی که می‌خواهید در خروجی API و JSON-LD هم باشند.
+                  </p>
+                </div>
+                <span className="text-xs text-gray-500">{formData.keywords?.length || 0} مورد</span>
+              </div>
+
+              <div className="min-h-14 rounded-lg border border-gray-300 bg-white p-2 focus-within:ring-2 focus-within:ring-blue-200 focus-within:border-blue-500">
                 <div className="flex flex-wrap items-center gap-2">
                   {(formData.keywords || []).map((keyword) => (
                     <span
@@ -803,7 +1070,7 @@ export default function PostEditPage() {
                       }
                     }}
                     className="min-w-48 flex-1 bg-transparent px-2 py-1 text-sm outline-none"
-                    placeholder={formData.keywords?.length ? 'کلمه بعدی...' : 'مثلاً: ثبت شرکت، کارت بازرگانی، واردات'}
+                    placeholder="مثلاً: ثبت شرکت فوری، ثبت برند، روزنامه رسمی"
                   />
                 </div>
               </div>
@@ -821,53 +1088,21 @@ export default function PostEditPage() {
                   <button
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, keywords: [] }))}
-                    className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50"
+                    className="px-3 py-1.5 rounded-md border text-sm hover:bg-white"
                   >
-                    پاک کردن همه
+                    پاک کردن تکمیلی‌ها
                   </button>
                 )}
               </div>
-
-              <p className="text-xs text-gray-500">
-                با Enter، کاما یا ویرگول فارسی هر کلمه را جدا کنید. بهتر است ۳ تا ۸ عبارت کلیدی دقیق انتخاب شود.
-              </p>
             </div>
 
-            {keywordSuggestions.length > 0 && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-semibold text-green-900">پیشنهاد خودکار کلمات کلیدی</h3>
-                    <p className="text-xs text-green-700 mt-1">
-                      بر اساس عنوان، خلاصه و متن مقاله استخراج شده‌اند.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addKeywords(keywordSuggestions.slice(0, 8))}
-                    className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 whitespace-nowrap"
-                  >
-                    افزودن ۸ پیشنهاد اول
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {keywordSuggestions.map((keyword) => (
-                    <button
-                      key={keyword}
-                      type="button"
-                      onClick={() => addKeywords(keyword)}
-                      className="rounded-full border border-green-300 bg-white px-3 py-1 text-sm text-green-800 hover:bg-green-100"
-                    >
-                      + {keyword}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              <strong>راهنما:</strong> یک Keyword اصلی انتخاب کنید، ۵ تا ۱۵ LSI مرتبط اضافه کنید و فقط چند keyword تکمیلی ضروری نگه دارید. Keyword stuffing نکنید؛ کیفیت و ارتباط معنایی مهم‌تر از تعداد است.
+            </div>
 
             {keywordDensity.length > 0 && (
               <div className="mt-4 pt-4 border-t">
-                <h3 className="text-sm font-medium mb-3">تحلیل چگالی کلمات کلیدی</h3>
+                <h3 className="text-sm font-medium mb-3">تحلیل چگالی Keyword اصلی، LSI و کلمات تکمیلی</h3>
                 <div className="space-y-3">
                   {keywordDensity.map((item, idx) => {
                     const densityPercent = Math.min(item.density, 5);

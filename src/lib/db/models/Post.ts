@@ -12,6 +12,8 @@ export interface IPost {
   categoryId?: string;
   categoryIds?: string[];
   tags?: string[];
+  focusKeyword?: string;
+  lsiKeywords?: string[];
   keywords?: string[];
   coverImageId?: string;
   canonicalUrl?: string;
@@ -50,7 +52,9 @@ const PostSchema = new Schema<IPost>(
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category', index: true },
     categoryIds: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
-    keywords: [{ type: String }],
+    focusKeyword: { type: String, trim: true },
+    lsiKeywords: [{ type: String, trim: true }],
+    keywords: [{ type: String, trim: true }],
     coverImageId: { type: Schema.Types.ObjectId, ref: 'Media' },
     canonicalUrl: { type: String, trim: true },
     isFeatured: { type: Boolean, default: false },
