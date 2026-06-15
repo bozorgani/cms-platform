@@ -159,6 +159,112 @@ function allSeoKeywords(focusKeyword?: string, lsiKeywords?: string[], keywords?
 }
 
 
+type SeoLengthStatus = 'empty' | 'short' | 'ok' | 'long';
+
+interface SeoLengthValidation {
+  errors: string[];
+  warnings: string[];
+  metaTitleStatus: SeoLengthStatus;
+  metaDescriptionStatus: SeoLengthStatus;
+  metaTitleMessage: string;
+  metaDescriptionMessage: string;
+  isStrict: boolean;
+}
+
+function getLengthStatus(length: number, min: number, max: number): SeoLengthStatus {
+  if (length === 0) return 'empty';
+  if (length < min) return 'short';
+  if (length > max) return 'long';
+  return 'ok';
+}
+
+function seoStatusClass(status: SeoLengthStatus): string {
+  if (status === 'ok') return 'text-green-600';
+  if (status === 'long' || status === 'empty') return 'text-red-600';
+  return 'text-yellow-600';
+}
+
+function seoInputClass(status: SeoLengthStatus): string {
+  if (status === 'ok' || status === 'empty') return 'border-gray-300';
+  if (status === 'long') return 'border-red-400 focus:border-red-500 focus:ring-red-200';
+  return 'border-yellow-400 focus:border-yellow-500 focus:ring-yellow-200';
+}
+
+function validateSeoLengths(data: PostInput): SeoLengthValidation {
+  const isStrict = data.status === 'published' || data.status === 'scheduled';
+  const metaTitle = data.seo?.metaTitle?.trim() || '';
+  const metaDescription = data.seo?.metaDescription?.trim() || '';
+  const metaTitleLength = metaTitle.length;
+  const metaDescriptionLength = metaDescription.length;
+  const metaTitleStatus = getLengthStatus(
+    metaTitleLength,
+    SEO_LIMITS.META_TITLE_MIN,
+    SEO_LIMITS.META_TITLE_MAX
+  );
+  const metaDescriptionStatus = getLengthStatus(
+    metaDescriptionLength,
+    SEO_LIMITS.META_DESCRIPTION_MIN,
+    SEO_LIMITS.META_DESCRIPTION_MAX
+  );
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  function addIssue(condition: boolean, message: string) {
+    if (!condition) return;
+    if (isStrict) errors.push(message);
+    else warnings.push(message);
+  }
+
+  addIssue(metaTitleStatus === 'empty', 'Meta Title برای انتشار الزامی است.');
+  addIssue(
+    metaTitleStatus === 'short',
+    `Meta Title کوتاه است (${metaTitleLength}/${SEO_LIMITS.META_TITLE_MIN} حداقل).`
+  );
+  addIssue(
+    metaTitleStatus === 'long',
+    `Meta Title طولانی است (${metaTitleLength}/${SEO_LIMITS.META_TITLE_MAX} حداکثر).`
+  );
+  addIssue(metaDescriptionStatus === 'empty', 'Meta Description برای انتشار الزامی است.');
+  addIssue(
+    metaDescriptionStatus === 'short',
+    `Meta Description کوتاه است (${metaDescriptionLength}/${SEO_LIMITS.META_DESCRIPTION_MIN} حداقل).`
+  );
+  addIssue(
+    metaDescriptionStatus === 'long',
+    `Meta Description طولانی است (${metaDescriptionLength}/${SEO_LIMITS.META_DESCRIPTION_MAX} حداکثر).`
+  );
+
+  const metaTitleMessage =
+    metaTitleStatus === 'ok'
+      ? 'طول Meta Title مناسب است.'
+      : metaTitleStatus === 'empty'
+      ? 'Meta Title را وارد کنید.'
+      : metaTitleStatus === 'short'
+      ? `حداقل ${SEO_LIMITS.META_TITLE_MIN - metaTitleLength} کاراکتر دیگر پیشنهاد می‌شود.`
+      : `${metaTitleLength - SEO_LIMITS.META_TITLE_MAX} کاراکتر بیشتر از حد پیشنهادی است.`;
+
+  const metaDescriptionMessage =
+    metaDescriptionStatus === 'ok'
+      ? 'طول Meta Description مناسب است.'
+      : metaDescriptionStatus === 'empty'
+      ? 'Meta Description را وارد کنید.'
+      : metaDescriptionStatus === 'short'
+      ? `حداقل ${SEO_LIMITS.META_DESCRIPTION_MIN - metaDescriptionLength} کاراکتر دیگر پیشنهاد می‌شود.`
+      : `${metaDescriptionLength - SEO_LIMITS.META_DESCRIPTION_MAX} کاراکتر بیشتر از حد پیشنهادی است.`;
+
+  return {
+    errors,
+    warnings,
+    metaTitleStatus,
+    metaDescriptionStatus,
+    metaTitleMessage,
+    metaDescriptionMessage,
+    isStrict,
+  };
+}
+
+
 interface KeywordAnalysis {
   keyword: string;
   count: number;
@@ -457,6 +563,12 @@ export default function PostEditPage() {
       return;
     }
 
+    const seoLengthCheck = validateSeoLengths(formData);
+    if (seoLengthCheck.errors.length > 0) {
+      toast.error(seoLengthCheck.errors[0]);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: PostInput = {
@@ -521,6 +633,7 @@ export default function PostEditPage() {
 
   const metaTitleLength = formData.seo?.metaTitle?.length || 0;
   const metaDescLength = formData.seo?.metaDescription?.length || 0;
+  const seoLengthValidation = useMemo(() => validateSeoLengths(formData), [formData]);
 
   if (loading) {
     return (
@@ -655,6 +768,31 @@ export default function PostEditPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 space-y-4">
             <h2 className="text-lg font-semibold">تنظیمات SEO</h2>
 
+            {((seoLengthValidation.isStrict && seoLengthValidation.errors.length > 0) ||
+              (!seoLengthValidation.isStrict && seoLengthValidation.warnings.length > 0 && (metaTitleLength > 0 || metaDescLength > 0))) && (
+              <div
+                className={`rounded-lg border p-3 text-sm ${
+                  seoLengthValidation.errors.length > 0
+                    ? 'bg-red-50 border-red-200 text-red-700'
+                    : 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                }`}
+              >
+                <p className="font-semibold mb-1">
+                  {seoLengthValidation.errors.length > 0
+                    ? 'قبل از انتشار این موارد را اصلاح کنید:'
+                    : 'پیشنهادهای بهبود SEO:'}
+                </p>
+                <ul className="list-disc list-inside space-y-1">
+                  {(seoLengthValidation.errors.length > 0
+                    ? seoLengthValidation.errors
+                    : seoLengthValidation.warnings
+                  ).map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div>
               <label htmlFor="seo-meta-title" className="block text-sm font-medium mb-1">
                 Meta Title
@@ -669,20 +807,13 @@ export default function PostEditPage() {
                     seo: { ...prev.seo, metaTitle: e.target.value } as SEO,
                   }))
                 }
-                className="w-full px-3 py-2 border rounded-md"
+                className={`w-full px-3 py-2 border rounded-md ${seoInputClass(seoLengthValidation.metaTitleStatus)}`}
+                aria-invalid={seoLengthValidation.metaTitleStatus === 'long' || (seoLengthValidation.isStrict && seoLengthValidation.metaTitleStatus !== 'ok')}
                 placeholder="عنوان برای SEO"
               />
-              <p
-                className={`text-xs mt-1 ${
-                  metaTitleLength > SEO_LIMITS.META_TITLE_MAX
-                    ? 'text-red-500'
-                    : metaTitleLength < SEO_LIMITS.META_TITLE_MIN
-                    ? 'text-yellow-600'
-                    : 'text-green-600'
-                }`}
-              >
+              <p className={`text-xs mt-1 ${seoStatusClass(seoLengthValidation.metaTitleStatus)}`}>
                 {metaTitleLength} کاراکتر (توصیه: {SEO_LIMITS.META_TITLE_MIN}-
-                {SEO_LIMITS.META_TITLE_MAX})
+                {SEO_LIMITS.META_TITLE_MAX}) — {seoLengthValidation.metaTitleMessage}
               </p>
             </div>
 
@@ -699,21 +830,14 @@ export default function PostEditPage() {
                     seo: { ...prev.seo, metaDescription: e.target.value } as SEO,
                   }))
                 }
-                className="w-full px-3 py-2 border rounded-md"
+                className={`w-full px-3 py-2 border rounded-md ${seoInputClass(seoLengthValidation.metaDescriptionStatus)}`}
+                aria-invalid={seoLengthValidation.metaDescriptionStatus === 'long' || (seoLengthValidation.isStrict && seoLengthValidation.metaDescriptionStatus !== 'ok')}
                 rows={3}
                 placeholder="توضیحات برای SEO"
               />
-              <p
-                className={`text-xs mt-1 ${
-                  metaDescLength > SEO_LIMITS.META_DESCRIPTION_MAX
-                    ? 'text-red-500'
-                    : metaDescLength < SEO_LIMITS.META_DESCRIPTION_MIN
-                    ? 'text-yellow-600'
-                    : 'text-green-600'
-                }`}
-              >
+              <p className={`text-xs mt-1 ${seoStatusClass(seoLengthValidation.metaDescriptionStatus)}`}>
                 {metaDescLength} کاراکتر (توصیه: {SEO_LIMITS.META_DESCRIPTION_MIN}-
-                {SEO_LIMITS.META_DESCRIPTION_MAX})
+                {SEO_LIMITS.META_DESCRIPTION_MAX}) — {seoLengthValidation.metaDescriptionMessage}
               </p>
             </div>
 
