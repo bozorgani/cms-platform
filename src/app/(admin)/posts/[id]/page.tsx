@@ -41,6 +41,85 @@ const DEFAULT_SEO: SEO = {
   schemaType: 'Article',
 };
 
+
+const KEYWORD_STOP_WORDS = new Set([
+  'از', 'به', 'در', 'با', 'برای', 'این', 'آن', 'های', 'ها', 'و', 'یا', 'را', 'که', 'یک', 'می',
+  'شود', 'شد', 'است', 'هست', 'نیست', 'کرد', 'کردن', 'روی', 'تا', 'اما', 'اگر', 'هر', 'هم',
+  'the', 'and', 'or', 'for', 'with', 'from', 'this', 'that', 'you', 'your', 'are', 'was', 'were',
+  'درصد', 'سال', 'ماه', 'روز', 'مورد', 'روش', 'بخش', 'صورت', 'طور', 'چگونه', 'چرا', 'چیست',
+]);
+
+const KEYWORD_SPLIT_REGEX = /[,،;؛\n]+/;
+const KEYWORD_TEXT_REGEX = /[^؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿a-z0-9\s-]/g;
+
+function normalizeKeyword(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(KEYWORD_TEXT_REGEX, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function uniqueKeywords(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const keyword = normalizeKeyword(value);
+    if (!keyword || seen.has(keyword)) continue;
+    seen.add(keyword);
+    out.push(keyword);
+  }
+  return out;
+}
+
+function tokenizeKeywordText(text: string): string[] {
+  return normalizeKeyword(text)
+    .split(/\s+/)
+    .filter((word) => word.length > 1 && !KEYWORD_STOP_WORDS.has(word) && !/^\d+$/.test(word));
+}
+
+function ngrams(words: string[], size: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i <= words.length - size; i++) {
+    const chunk = words.slice(i, i + size);
+    if (chunk.some((word) => KEYWORD_STOP_WORDS.has(word))) continue;
+    out.push(chunk.join(' '));
+  }
+  return out;
+}
+
+function generateKeywordSuggestions(
+  selectedKeywords: string[],
+  content: TiptapContent | null,
+  title = '',
+  excerpt = ''
+): string[] {
+  const contentText = extractTextFromContent(content as any);
+  const fullWords = tokenizeKeywordText([title, excerpt, contentText].filter(Boolean).join(' '));
+  const titleText = normalizeKeyword(title);
+  const excerptText = normalizeKeyword(excerpt);
+  const selected = new Set(selectedKeywords.map(normalizeKeyword));
+
+  if (fullWords.length === 0) return [];
+
+  const scores = new Map<string, number>();
+  for (const size of [3, 2, 1]) {
+    for (const phrase of ngrams(fullWords, size)) {
+      if (phrase.length < 3 || selected.has(phrase)) continue;
+      const base = size === 1 ? 1 : size * 2;
+      const titleBoost = titleText.includes(phrase) ? 7 : 0;
+      const excerptBoost = excerptText.includes(phrase) ? 3 : 0;
+      scores.set(phrase, (scores.get(phrase) || 0) + base + titleBoost + excerptBoost);
+    }
+  }
+
+  return [...scores.entries()]
+    .filter(([phrase]) => !selected.has(phrase))
+    .sort((a, b) => b[1] - a[1] || b[0].split(' ').length - a[0].split(' ').length || a[0].localeCompare(b[0], 'fa'))
+    .slice(0, 18)
+    .map(([phrase]) => phrase);
+}
+
 interface KeywordAnalysis {
   keyword: string;
   count: number;
@@ -109,6 +188,7 @@ export default function PostEditPage() {
   const [newTagName, setNewTagName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [creatingTag, setCreatingTag] = useState(false);
+  const [keywordInput, setKeywordInput] = useState('');
 
   const [formData, setFormData] = useState<PostInput>({
     title: '',
@@ -266,6 +346,31 @@ export default function PostEditPage() {
     }));
   }
 
+  function addKeywords(raw: string | string[]) {
+    const values = Array.isArray(raw) ? raw : raw.split(KEYWORD_SPLIT_REGEX);
+    const nextKeywords = uniqueKeywords([...(formData.keywords || []), ...values]);
+    setFormData((prev) => ({ ...prev, keywords: nextKeywords }));
+    setKeywordInput('');
+  }
+
+  function removeKeyword(keyword: string) {
+    const normalized = normalizeKeyword(keyword);
+    setFormData((prev) => ({
+      ...prev,
+      keywords: (prev.keywords || []).filter((item) => normalizeKeyword(item) !== normalized),
+    }));
+  }
+
+  function handleKeywordInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',' || e.key === '،') {
+      e.preventDefault();
+      if (keywordInput.trim()) addKeywords(keywordInput);
+    }
+    if (e.key === 'Backspace' && !keywordInput && formData.keywords?.length) {
+      removeKeyword(formData.keywords[formData.keywords.length - 1]);
+    }
+  }
+
   async function handleSave() {
     if (!formData.title.trim()) {
       toast.warning('عنوان پست الزامی است');
@@ -305,6 +410,11 @@ export default function PostEditPage() {
 
   const keywordDensity = useMemo(
     () => calculateKeywordDensity(formData.keywords || [], formData.content, formData.title, formData.excerpt || ''),
+    [formData.keywords, formData.content, formData.title, formData.excerpt]
+  );
+
+  const keywordSuggestions = useMemo(
+    () => generateKeywordSuggestions(formData.keywords || [], formData.content, formData.title, formData.excerpt || ''),
     [formData.keywords, formData.content, formData.title, formData.excerpt]
   );
 
@@ -645,26 +755,115 @@ export default function PostEditPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 space-y-4">
             <h2 className="text-lg font-semibold">کلمات کلیدی</h2>
 
-            <div>
-              <label htmlFor="post-keywords" className="block text-sm font-medium mb-1">
-                کلمات کلیدی (جدا شده با کاما)
-              </label>
-              <textarea
-                id="post-keywords"
-                value={(formData.keywords || []).join(', ')}
-                onChange={(e) => {
-                  const keywords = e.target.value
-                    .split(',')
-                    .map((k) => k.trim())
-                    .filter((k) => k.length > 0);
-                  setFormData((prev) => ({ ...prev, keywords }));
-                }}
-                className="w-full px-3 py-2 border rounded-md"
-                rows={3}
-                placeholder="کلمه کلیدی ۱, کلمه کلیدی ۲, کلمه کلیدی ۳"
-              />
-              <p className="text-xs text-gray-500 mt-1">کلمات کلیدی را با کاما از هم جدا کنید</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="post-keywords" className="block text-sm font-medium">
+                  کلمات کلیدی SEO
+                </label>
+                <span className="text-xs text-gray-500">{formData.keywords?.length || 0} کلمه</span>
+              </div>
+
+              <div className="min-h-14 rounded-lg border border-gray-300 bg-gray-50 p-2 focus-within:ring-2 focus-within:ring-blue-200 focus-within:border-blue-500">
+                <div className="flex flex-wrap items-center gap-2">
+                  {(formData.keywords || []).map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-sm"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => removeKeyword(keyword)}
+                        className="text-blue-600 hover:text-red-600 font-bold leading-none"
+                        aria-label={`حذف ${keyword}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    id="post-keywords"
+                    type="text"
+                    value={keywordInput}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      if (KEYWORD_SPLIT_REGEX.test(nextValue)) {
+                        addKeywords(nextValue);
+                      } else {
+                        setKeywordInput(nextValue);
+                      }
+                    }}
+                    onKeyDown={handleKeywordInputKeyDown}
+                    onBlur={() => keywordInput.trim() && addKeywords(keywordInput)}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData('text');
+                      if (KEYWORD_SPLIT_REGEX.test(text)) {
+                        e.preventDefault();
+                        addKeywords(text);
+                      }
+                    }}
+                    className="min-w-48 flex-1 bg-transparent px-2 py-1 text-sm outline-none"
+                    placeholder={formData.keywords?.length ? 'کلمه بعدی...' : 'مثلاً: ثبت شرکت، کارت بازرگانی، واردات'}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => keywordInput.trim() && addKeywords(keywordInput)}
+                  disabled={!keywordInput.trim()}
+                  className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  افزودن
+                </button>
+                {(formData.keywords?.length || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, keywords: [] }))}
+                    className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50"
+                  >
+                    پاک کردن همه
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500">
+                با Enter، کاما یا ویرگول فارسی هر کلمه را جدا کنید. بهتر است ۳ تا ۸ عبارت کلیدی دقیق انتخاب شود.
+              </p>
             </div>
+
+            {keywordSuggestions.length > 0 && (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-green-900">پیشنهاد خودکار کلمات کلیدی</h3>
+                    <p className="text-xs text-green-700 mt-1">
+                      بر اساس عنوان، خلاصه و متن مقاله استخراج شده‌اند.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addKeywords(keywordSuggestions.slice(0, 8))}
+                    className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 whitespace-nowrap"
+                  >
+                    افزودن ۸ پیشنهاد اول
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {keywordSuggestions.map((keyword) => (
+                    <button
+                      key={keyword}
+                      type="button"
+                      onClick={() => addKeywords(keyword)}
+                      className="rounded-full border border-green-300 bg-white px-3 py-1 text-sm text-green-800 hover:bg-green-100"
+                    >
+                      + {keyword}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {keywordDensity.length > 0 && (
               <div className="mt-4 pt-4 border-t">
